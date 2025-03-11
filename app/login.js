@@ -9,14 +9,22 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
 
     const handleLogin = async () => {
-        const response = await loginUser(email, password);
-        if (response.message) {
-            Alert.alert('Success', response.message);
-            router.push('/home');
-        } else {
-            Alert.alert('Error', response.error);
+        try {
+            const response = await loginUser(email, password);
+            console.log('Login API Response:', response); // ✅ Debugging log
+    
+            if (response.message) {
+                Alert.alert('Success', response.message);
+                router.push('/calendar'); // ✅ Navigate to calendar
+            } else {
+                Alert.alert('Error', response.error || 'Invalid credentials');
+            }
+        } catch (error) {
+            console.error('Login Error:', error); // ✅ Log any API call errors
+            Alert.alert('Error', 'Login failed. Please try again.');
         }
     };
+    
 
     return (
         <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
