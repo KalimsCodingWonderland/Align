@@ -1,19 +1,19 @@
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/userAuthentication"; // Update with your database name
-
-const client = new MongoClient(mongoURI, {
-    useNewUrlParser: true, // These are now ignored but kept for compatibility
-    useUnifiedTopology: true
-});
+const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/userAuthentication";
 
 let db;
 
 async function connectDB() {
     try {
-        await client.connect();
-        db = client.db(); // Selects the database
+        const conn = await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000, // Shorter timeout
+        });
+
+        db = mongoose.connection; // ✅ Assign Mongoose connection
         console.log('✅ Connected to MongoDB database');
     } catch (error) {
         console.error('❌ MongoDB connection error:', error);
@@ -21,6 +21,7 @@ async function connectDB() {
     }
 }
 
+// ✅ Fix: `getDB` should return the mongoose connection
 function getDB() {
     if (!db) {
         throw new Error('❌ Database not initialized');
