@@ -1,4 +1,4 @@
-const API_BASE =  'http://10.190.66.171:5001';
+const API_BASE =  'http://10.190.66.44:5001';
 
 
 export const registerUser = async (username: string, email: string, password: string) => {
