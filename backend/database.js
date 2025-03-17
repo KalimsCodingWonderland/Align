@@ -3,31 +3,31 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/userAuthentication";
+const mongoURI = process.env.MONGO_URI;
 
 let db;
 
 async function connectDB() {
+    if (db) return db; // Reuse existing connection
+
     try {
-        const conn = await mongoose.connect(mongoURI, {
+        await mongoose.connect(mongoURI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Shorter timeout
+            serverSelectionTimeoutMS: 5000,
         });
 
-        db = mongoose.connection; // ✅ Assign Mongoose connection
-        console.log('✅ Connected to MongoDB database');
+        db = mongoose.connection;
+        console.log('✅ MongoDB Connected');
+        return db;
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
-        process.exit(1); // Stop the server if connection fails
+        console.error('❌ MongoDB Connection Error:', error);
+        throw error;
     }
 }
 
-// ✅ Fix: `getDB` should return the mongoose connection
 function getDB() {
-    if (!db) {
-        throw new Error('❌ Database not initialized');
-    }
+    if (!db) throw new Error('Database not initialized');
     return db;
 }
 
