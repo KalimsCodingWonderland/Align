@@ -1,6 +1,6 @@
 //constants/api.ts
 
-const API_BASE =  'mongodb+srv://kalimqazi05:F73xtWdhku3d3bMc@cluster0.higw9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const API_BASE =  'https://align-coral.vercel.app/';
 
 
 export const registerUser = async (username: string, email: string, password: string) => {
