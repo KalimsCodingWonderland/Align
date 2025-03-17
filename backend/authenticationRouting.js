@@ -1,5 +1,3 @@
-// backend/authenticationRouting.js
-
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -41,7 +39,6 @@ router.post('/register', async (req, res) => {
 // ✅ Use `getDB()` to get the MongoDB instance
 router.post('/login', async (req, res) => {
     try {
-        await connectDB();
         const db = getDB(); // ✅ Get the database instance
         const { email, password } = req.body;
 
@@ -77,5 +74,4 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
-
 

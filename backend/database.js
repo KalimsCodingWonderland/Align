@@ -1,41 +1,32 @@
-//backend/database.js
-
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const mongoURI = process.env.MONGO_URI;
+const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/userAuthentication";
 
-let cached = global.mongoose;
-
-if (!cached) {
-    cached = global.mongoose = { conn: null, promise: null };
-}
+let db;
 
 async function connectDB() {
-    if (cached.conn) return cached.conn;
-
-    if (!cached.promise) {
-        cached.promise = mongoose.connect(mongoURI, {
+    try {
+        const conn = await mongoose.connect(mongoURI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            bufferCommands: false // Disable mongoose buffering
-        }).then(mongoose => mongoose);
-    }
+            serverSelectionTimeoutMS: 5000, // Shorter timeout
+        });
 
-    try {
-        cached.conn = await cached.promise;
-        console.log('✅ MongoDB Connected');
-        return cached.conn;
-    } catch (err) {
-        console.error('❌ MongoDB Connection Error:', err);
-        throw err;
+        db = mongoose.connection; // ✅ Assign Mongoose connection
+        console.log('✅ Connected to MongoDB database');
+    } catch (error) {
+        console.error('❌ MongoDB connection error:', error);
+        process.exit(1); // Stop the server if connection fails
     }
 }
 
+// ✅ Fix: `getDB` should return the mongoose connection
 function getDB() {
-    if (!cached.conn) throw new Error('Database not initialized');
-    return cached.conn;
+    if (!db) {
+        throw new Error('❌ Database not initialized');
+    }
+    return db;
 }
 
 module.exports = { connectDB, getDB };

@@ -1,6 +1,6 @@
 //constants/api.ts
 
-const API_BASE =  'https://align-coral.vercel.app/';
+const API_BASE =  'http://192.168.1.147:5001';
 
 
 export const registerUser = async (username: string, email: string, password: string) => {
