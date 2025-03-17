@@ -1,26 +1,18 @@
-// backend/server.js
-
 const express = require('express');
 const cors = require('cors');
-const { connectDB } = require('./database');
+const { connectDB } = require('./database'); // ✅ Import database connection
 require('dotenv').config();
 
 const authenticationRoutes = require('./authenticationRouting');
+
 const app = express();
-
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // ✅ Ensure request body is parsed
 
-// Check DB connection before handling requests
-app.use(async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (err) {
-        res.status(500).json({ error: 'Database connection failed' });
-    }
-});
+// ✅ Connect to MongoDB before starting the server
+connectDB().then(() => {
+    app.use('/auth', authenticationRoutes); // Mount routes only after DB connection
 
-app.use('/auth', authenticationRoutes);
-
-module.exports = app;
+    const PORT = process.env.PORT || 5001;
+    app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+}).catch(err => console.error('❌ Failed to start server:', err));
