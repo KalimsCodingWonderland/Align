@@ -16,9 +16,5 @@ connectDB().then(() => {
     app.use('/auth', authenticationRoutes); // Mount routes only after DB connection
 }).catch(err => console.error('❌ Failed to start server:', err));
 
-if (process.env.NODE_ENV !== 'production') {
-    const PORT = process.env.PORT || 5001;
-    app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
-}
 
 module.exports = app;
