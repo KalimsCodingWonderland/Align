@@ -1,34 +1,39 @@
-// backend/database.js
-
 const mongoose = require('mongoose');
 require('dotenv').config();
 
 const mongoURI = process.env.MONGO_URI;
 
-let db;
+let cached = global.mongoose;
+
+if (!cached) {
+    cached = global.mongoose = { conn: null, promise: null };
+}
 
 async function connectDB() {
-    if (db) return db; // Reuse existing connection
+    if (cached.conn) return cached.conn;
 
-    try {
-        await mongoose.connect(mongoURI, {
+    if (!cached.promise) {
+        cached.promise = mongoose.connect(mongoURI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000,
-        });
+            bufferCommands: false // Disable mongoose buffering
+        }).then(mongoose => mongoose);
+    }
 
-        db = mongoose.connection;
+    try {
+        cached.conn = await cached.promise;
         console.log('✅ MongoDB Connected');
-        return db;
-    } catch (error) {
-        console.error('❌ MongoDB Connection Error:', error);
-        throw error;
+        return cached.conn;
+    } catch (err) {
+        console.error('❌ MongoDB Connection Error:', err);
+        throw err;
     }
 }
 
 function getDB() {
-    if (!db) throw new Error('Database not initialized');
-    return db;
+    if (!cached.conn) throw new Error('Database not initialized');
+    return cached.conn;
 }
 
 module.exports = { connectDB, getDB };

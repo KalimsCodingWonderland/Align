@@ -41,6 +41,7 @@ router.post('/register', async (req, res) => {
 // ✅ Use `getDB()` to get the MongoDB instance
 router.post('/login', async (req, res) => {
     try {
+        await connectDB();
         const db = getDB(); // ✅ Get the database instance
         const { email, password } = req.body;
 
