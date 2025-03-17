@@ -1,6 +1,6 @@
 //constants/api.ts
 
-const API_BASE =  'https://align-ten.vercel.app/';
+const API_BASE =  'https://align-git-kalimbranch-kalims-projects-52343af1.vercel.app/';
 
 
 export const registerUser = async (username: string, email: string, password: string) => {
