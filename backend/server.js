@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const { connectDB } = require('./backend/database');
+const { connectDB } = require('backend/database');
 require('dotenv').config();
 
-const authenticationRoutes = require('./backend/authenticationRouting');
-const taskRoutes = require('./backend/taskRouting');
+const authenticationRoutes = require('backend/authenticationRouting');
+const taskRoutes = require('backend/taskRouting');
 
 const app = express();
 app.use(cors());
