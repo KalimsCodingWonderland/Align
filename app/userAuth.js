@@ -1,20 +1,15 @@
-//app/userAuth.js
-
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// A custom animated button component with a subtle scale effect on press
 const AnimatedButton = ({ title, onPress, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
-
     const onPressIn = () => {
         Animated.spring(scale, {
             toValue: 0.95,
             useNativeDriver: true,
         }).start();
     };
-
     const onPressOut = () => {
         Animated.spring(scale, {
             toValue: 1,
@@ -22,7 +17,6 @@ const AnimatedButton = ({ title, onPress, style }) => {
             useNativeDriver: true,
         }).start();
     };
-
     return (
         <Animated.View style={{ transform: [{ scale }] }}>
             <TouchableOpacity
@@ -40,9 +34,8 @@ const AnimatedButton = ({ title, onPress, style }) => {
 
 export default function HomeScreen() {
     const router = useRouter();
-    const fadeAnim = useRef(new Animated.Value(0)).current; // initial opacity is 0
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
-    // Fade in the screen on mount
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: 1,
@@ -54,16 +47,8 @@ export default function HomeScreen() {
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
             <Text style={styles.title}>Set Your Schedule Straight.</Text>
-            <AnimatedButton
-                title="Register"
-                onPress={() => router.push('/register')}
-                style={styles.button}
-            />
-            <AnimatedButton
-                title="Login"
-                onPress={() => router.push('/login')}
-                style={styles.button}
-            />
+            <AnimatedButton title="Register" onPress={() => router.push('/register')} style={styles.button} />
+            <AnimatedButton title="Login" onPress={() => router.push('/login')} style={styles.button} />
         </Animated.View>
     );
 }
@@ -88,7 +73,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 50,
         borderRadius: 30,
         marginVertical: 10,
-        // subtle shadow for a polished look
         elevation: 3,
         shadowColor: '#000',
         shadowOpacity: 0.1,

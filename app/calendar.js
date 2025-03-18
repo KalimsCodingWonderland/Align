@@ -1,16 +1,59 @@
-// app/calendar.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Modal, TouchableOpacity, FlatList, SectionList, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Modal, TouchableOpacity, FlatList, SectionList, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { categorizeTask, createTask, getTasks, updateTask, deleteTask } from '../constants/api';
+import { categorizeTask, getTasks, addTask, updateTask, deleteTask } from '../constants/api';
 import { Calendar } from 'react-native-calendars';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const categories = ['STUDY', 'ENTERTAINMENT', 'WORK', 'EVENT', 'ERRAND', 'EXERCISE', 'HOUSEHOLD CHORE', 'OTHER'];
-const timeOptions = ['15 min', '30 min', '45 min', '1 hour', '1.5 hours', '2 hours', '3 hours'];
 
-const CalendarScreen = () => {
+const formatSectionDate = (dateString) => {
+    const date = new Date(dateString);
+    const options = { month: 'long', day: 'numeric', year: 'numeric', weekday: 'long' };
+    const formattedDate = date.toLocaleDateString(undefined, options);
+
+    const day = date.getDate();
+    const ordinal = (n) => {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return s[(v - 20) % 10] || s[v] || s[0];
+    };
+
+    const ordinalDay = `${day}${ordinal(day)}`;
+    const month = date.toLocaleDateString(undefined, { month: 'long' });
+    const year = date.getFullYear();
+
+    return `${month} ${ordinalDay}, ${year} - ${date.toLocaleDateString(undefined, { weekday: 'long' })}`;
+};
+
+const formatTaskDate = (dateString) => {
+    const date = new Date(dateString);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    return `${month}/${day} - ${weekday}`;
+};
+
+const formatTaskTime = (dateString) => {
+    const date = new Date(dateString);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+const timeOptions = [
+    '15 min',
+    '30 min',
+    '45 min',
+    '1 hour',
+    '1.5 hours',
+    '2 hours',
+    '3 hours'
+];
+
+export default function CalendarScreen() {
     const router = useRouter();
-    const [token, setToken] = useState('YOUR_USER_TOKEN_HERE'); // Replace with real token from login
+    const [token, setToken] = useState(null);
     const [taskInput, setTaskInput] = useState('');
     const [tasks, setTasks] = useState([]);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -21,19 +64,20 @@ const CalendarScreen = () => {
     const [editDate, setEditDate] = useState('');
     const [editTime, setEditTime] = useState('');
 
-    // Fetch tasks from backend when token changes (i.e. when user logs in)
+    // Load token and tasks from API on mount
     useEffect(() => {
-        if (token) {
-            loadTasks();
-        }
-    }, [token]);
-
-    const loadTasks = async () => {
-        const result = await getTasks(token);
-        if (!result.error) {
-            setTasks(result.tasks);
-        }
-    };
+        const loadTokenAndTasks = async () => {
+            const storedToken = await AsyncStorage.getItem('token');
+            if (storedToken) {
+                setToken(storedToken);
+                const tasksFromApi = await getTasks(storedToken);
+                if (Array.isArray(tasksFromApi)) {
+                    setTasks(tasksFromApi);
+                }
+            }
+        };
+        loadTokenAndTasks();
+    }, []);
 
     const handleAddTask = async () => {
         if (!taskInput.trim()) return;
@@ -42,103 +86,93 @@ const CalendarScreen = () => {
         const now = new Date();
         now.setHours(12, 0, 0, 0);
         const newDate = now.toISOString();
-        const timeMatch = taskInput.match(/\d+\s*(min|minutes|hour|hours)/i);
-        const estimatedTime = timeMatch ? timeMatch[0] : '30 min';
 
-        // If manual, prompt for category selection
         if (category === 'MANUAL') {
-            setCurrentTask({ text: taskInput, date: newDate, time: estimatedTime });
+            setCurrentTask({ text: taskInput, date: newDate });
             setShowCategoryModal(true);
         } else {
-            const newTask = { text: taskInput, category, time: estimatedTime, date: newDate };
-            const result = await createTask(token, newTask);
-            if (!result.error) {
-                setTasks(prev => [...prev, result.task]);
+            const timeMatch = taskInput.match(/\d+\s*(min|minutes|hour|hours)/i);
+            const estimatedTime = timeMatch ? timeMatch[0] : '30 min';
+            const newTask = {
+                text: taskInput,
+                category,
+                time: estimatedTime,
+                date: newDate
+            };
+            const result = await addTask(newTask, token);
+            if (result._id) {
+                setTasks(prev => [...prev, result]);
                 setTaskInput('');
+            } else {
+                Alert.alert('Error', result.error || 'Failed to add task');
             }
         }
     };
 
-    const handleManualCategory = async (selectedCategory) => {
+    const handleManualCategory = async (category) => {
+        const timeMatch = currentTask.text.match(/\d+\s*(min|minutes|hour|hours)/i);
+        const estimatedTime = timeMatch ? timeMatch[0] : '30 min';
+        const now = new Date();
+        now.setHours(12, 0, 0, 0);
+        const newDate = now.toISOString();
         const newTask = {
             text: currentTask.text,
-            category: selectedCategory,
-            time: currentTask.time,
-            date: currentTask.date
+            category,
+            time: estimatedTime,
+            date: newDate
         };
-        const result = await createTask(token, newTask);
-        if (!result.error) {
-            setTasks(prev => [...prev, result.task]);
+        const result = await addTask(newTask, token);
+        if (result._id) {
+            setTasks(prev => [...prev, result]);
+            setShowCategoryModal(false);
+            setCurrentTask(null);
+            setTaskInput('');
+        } else {
+            Alert.alert('Error', result.error || 'Failed to add task');
         }
-        setShowCategoryModal(false);
-        setCurrentTask(null);
-        setTaskInput('');
     };
 
-    const handleEditTask = (task) => {
-        setEditingTask(task);
+    const handleEditTask = (index) => {
+        const task = tasks[index];
+        setEditingTask(index);
         setEditDate(new Date(task.date).toISOString().split('T')[0]);
         setEditTime(task.time);
     };
 
+    const handleDateSelect = (day) => {
+        setEditDate(day.dateString);
+    };
+
     const saveEditedTask = async () => {
-        if (!editingTask) return;
+        const taskToEdit = tasks[editingTask];
         const [year, month, day] = editDate.split('-');
         const date = new Date(year, month - 1, day);
         date.setHours(12, 0, 0, 0);
-
-        const updatedData = {
-            text: editingTask.text,
-            category: editingTask.category,
+        const updatedTask = {
+            ...taskToEdit,
+            date: date.toISOString(),
             time: editTime,
-            date: date.toISOString()
         };
-
-        const result = await updateTask(token, editingTask._id, updatedData);
-        if (!result.error) {
-            // Update local tasks list
-            setTasks(prev =>
-                prev.map(task => (task._id === editingTask._id ? result.task : task))
+        const result = await updateTask(taskToEdit._id, updatedTask, token);
+        if (result._id) {
+            setTasks(prevTasks =>
+                prevTasks.map((task, index) => (index === editingTask ? result : task))
             );
+            setEditingTask(null);
+        } else {
+            Alert.alert('Error', result.error || 'Failed to update task');
         }
-        setEditingTask(null);
     };
 
     const handleDeleteTask = async () => {
-        if (!editingTask) return;
-        const result = await deleteTask(token, editingTask._id);
-        if (!result.error) {
-            setTasks(prev => prev.filter(task => task._id !== editingTask._id));
+        const taskToDelete = tasks[editingTask];
+        const result = await deleteTask(taskToDelete._id, token);
+        if (result.success) {
+            setTasks(prevTasks => prevTasks.filter((_, i) => i !== editingTask));
+            setEditingTask(null);
+        } else {
+            Alert.alert('Error', result.error || 'Failed to delete task');
         }
-        setEditingTask(null);
-    };
-
-    const formatSectionDate = (dateString) => {
-        const date = new Date(dateString);
-        const options = { month: 'long', day: 'numeric', year: 'numeric' };
-        const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
-        const day = date.getDate();
-        const ordinal = (n) => {
-            const s = ["th", "st", "nd", "rd"];
-            const v = n % 100;
-            return s[(v - 20) % 10] || s[v] || s[0];
-        };
-        return `${date.toLocaleDateString(undefined, options).replace(/\d+/, `${day}${ordinal(day)}`)} - ${weekday}`;
-    };
-
-    const formatTaskDate = (dateString) => {
-        const date = new Date(dateString);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const weekday = date.toLocaleDateString('en-US', { weekday: 'short' }).substring(0, 2).toUpperCase();
-        return `${month}/${day} - ${weekday}`;
-    };
-
-    const formatTaskTime = (dateString) => {
-        const date = new Date(dateString);
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
     };
 
     const groupTasksByDate = () => {
@@ -165,29 +199,15 @@ const CalendarScreen = () => {
         }, {});
     };
 
-    const renderTimeScroller = () => (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScroller}>
-            {timeOptions.map((time) => (
-                <TouchableOpacity
-                    key={time}
-                    style={[styles.timeOption, editTime === time && styles.selectedTimeOption]}
-                    onPress={() => setEditTime(time)}
-                >
-                    <Text style={editTime === time ? styles.selectedTimeText : styles.timeText}>{time}</Text>
-                </TouchableOpacity>
-            ))}
-        </ScrollView>
-    );
-
-    const renderTaskItem = ({ item }) => (
-        <TouchableOpacity onPress={() => activeView === 'tasks' ? handleEditTask(item) : null}>
+    const renderTaskItem = ({ item, index, showFullDate }) => (
+        <TouchableOpacity onPress={() => activeView === 'tasks' ? handleEditTask(index) : null}>
             <View style={styles.taskItem}>
                 <Text style={styles.taskText}>{item.text}</Text>
                 <View style={styles.taskDetails}>
                     <Text style={[styles.categoryLabel, { backgroundColor: getCategoryColor(item.category) }]}>
                         {item.category.toLowerCase()}
                     </Text>
-                    {activeView === 'tasks' ? (
+                    {showFullDate ? (
                         <Text style={styles.dateText}>{formatTaskDate(item.date)}</Text>
                     ) : (
                         <Text style={styles.timeText}>{formatTaskTime(item.date)}</Text>
@@ -215,7 +235,7 @@ const CalendarScreen = () => {
                         <FlatList
                             data={tasks}
                             keyExtractor={(item) => item._id || Math.random().toString()}
-                            renderItem={renderTaskItem}
+                            renderItem={({ item, index }) => renderTaskItem({ item, index, showFullDate: true })}
                             style={styles.taskList}
                         />
                     </>
@@ -224,8 +244,8 @@ const CalendarScreen = () => {
                 return (
                     <SectionList
                         sections={groupTasksByDate()}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={({ item }) => renderTaskItem({ item })}
+                        keyExtractor={(item, index) => item._id || index.toString()}
+                        renderItem={({ item, index }) => renderTaskItem({ item, index, showFullDate: false })}
                         renderSectionHeader={({ section: { title } }) => (
                             <Text style={styles.sectionHeader}>{title}</Text>
                         )}
@@ -240,7 +260,7 @@ const CalendarScreen = () => {
                             theme={{
                                 todayTextColor: '#007aff',
                                 selectedDayBackgroundColor: '#007aff',
-                                arrowColor: '#007aff'
+                                arrowColor: '#007aff',
                             }}
                         />
                         {selectedDate && (
@@ -249,20 +269,17 @@ const CalendarScreen = () => {
                                     new Date(task.date).toISOString().split('T')[0] === selectedDate
                                 )}
                                 keyExtractor={(item) => item._id || Math.random().toString()}
-                                renderItem={({ item }) => renderTaskItem({ item })}
+                                renderItem={({ item, index }) => renderTaskItem({ item, index, showFullDate: false })}
                             />
                         )}
                     </View>
                 );
-            default:
-                return null;
         }
     };
 
     return (
         <View style={styles.container}>
-            {/* Modal for manual category selection */}
-            <Modal visible={showCategoryModal} transparent>
+            <Modal visible={showCategoryModal} transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Select Category</Text>
@@ -279,25 +296,32 @@ const CalendarScreen = () => {
                 </View>
             </Modal>
 
-            {/* Modal for editing tasks */}
-            <Modal visible={!!editingTask} transparent>
+            <Modal visible={editingTask !== null} transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.editModalContent}>
-                        <TouchableOpacity style={styles.closeButton} onPress={() => setEditingTask(null)}>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setEditingTask(null)}
+                        >
                             <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
+
                         <Text style={styles.modalTitle}>Edit Task</Text>
+
                         <Text style={styles.label}>Select Date</Text>
                         <Calendar
                             current={editDate}
-                            onDayPress={(day) => setEditDate(day.dateString)}
-                            markedDates={{ [editDate]: { selected: true } }}
+                            onDayPress={handleDateSelect}
+                            markedDates={{
+                                [editDate]: { selected: true }
+                            }}
                             theme={{
                                 todayTextColor: '#007aff',
                                 selectedDayBackgroundColor: '#007aff',
-                                arrowColor: '#007aff'
+                                arrowColor: '#007aff',
                             }}
                         />
+
                         <Text style={styles.label}>Time Allocation</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScroller}>
                             {timeOptions.map((time) => (
@@ -306,17 +330,23 @@ const CalendarScreen = () => {
                                     style={[styles.timeOption, editTime === time && styles.selectedTimeOption]}
                                     onPress={() => setEditTime(time)}
                                 >
-                                    <Text style={editTime === time ? styles.selectedTimeText : styles.timeText}>
-                                        {time}
-                                    </Text>
+                                    <Text style={editTime === time ? styles.selectedTimeText : styles.timeText}>{time}</Text>
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
+
                         <View style={styles.formActions}>
-                            <TouchableOpacity style={[styles.actionButton, styles.saveButton]} onPress={saveEditedTask}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.saveButton]}
+                                onPress={saveEditedTask}
+                            >
                                 <Text style={styles.actionButtonText}>Save Changes</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDeleteTask}>
+
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.deleteButton]}
+                                onPress={handleDeleteTask}
+                            >
                                 <Text style={styles.actionButtonText}>Delete Task</Text>
                             </TouchableOpacity>
                         </View>
@@ -327,19 +357,28 @@ const CalendarScreen = () => {
             {renderTasks()}
 
             <View style={styles.tabBar}>
-                <TouchableOpacity style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]} onPress={() => setActiveView('tasks')}>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}
+                    onPress={() => setActiveView('tasks')}
+                >
                     <Text style={styles.tabText}>Add Task</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.tabButton, activeView === 'list' && styles.activeTab]} onPress={() => setActiveView('list')}>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeView === 'list' && styles.activeTab]}
+                    onPress={() => setActiveView('list')}
+                >
                     <Text style={styles.tabText}>List View</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.tabButton, activeView === 'calendar' && styles.activeTab]} onPress={() => setActiveView('calendar')}>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeView === 'calendar' && styles.activeTab]}
+                    onPress={() => setActiveView('calendar')}
+                >
                     <Text style={styles.tabText}>Calendar</Text>
                 </TouchableOpacity>
             </View>
         </View>
     );
-};
+}
 
 const getCategoryColor = (category) => {
     const colors = {
@@ -349,8 +388,8 @@ const getCategoryColor = (category) => {
         EVENT: '#a29bfe',
         ERRAND: '#ffeaa7',
         EXERCISE: '#fd79a8',
-        'HOUSEHOLD CHORE': '#81ecec',
-        OTHER: '#464545'
+        OTHER: '#464545',
+        'HOUSEHOLD CHORE': '#81ecec'
     };
     return colors[category] || '#dfe6e9';
 };
@@ -388,7 +427,7 @@ const styles = StyleSheet.create({
     taskDetails: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     categoryLabel: {
         padding: 5,
@@ -416,7 +455,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         maxHeight: '90%',
-        width: '95%'
+        width: '95%',
     },
     modalTitle: {
         fontSize: 20,
@@ -438,18 +477,18 @@ const styles = StyleSheet.create({
     },
     dateText: {
         color: '#666',
-        fontWeight: '500'
+        fontWeight: '500',
     },
     deleteButton: {
         marginTop: 20,
         backgroundColor: '#ff3b30',
         borderRadius: 8,
         padding: 12,
-        alignItems: 'center'
+        alignItems: 'center',
     },
     deleteButtonText: {
         color: 'white',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
     tabBar: {
         flexDirection: 'row',
@@ -480,7 +519,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f0f0',
         padding: 12,
         marginTop: 15,
-        color: '#333'
+        color: '#333',
     },
     calendarContainer: {
         flex: 1,
@@ -493,47 +532,52 @@ const styles = StyleSheet.create({
     },
     timeScroller: {
         marginVertical: 10,
-        maxHeight: 60
+        maxHeight: 60,
     },
     timeOption: {
         padding: 10,
         marginRight: 10,
         borderRadius: 8,
-        backgroundColor: '#f0f0f0'
+        backgroundColor: '#f0f0f0',
     },
     selectedTimeOption: {
-        backgroundColor: '#007aff'
+        backgroundColor: '#007aff',
     },
     selectedTimeText: {
-        color: 'white'
+        color: 'white',
     },
     closeButton: {
         position: 'absolute',
         right: 15,
         top: 15,
-        padding: 5
+        padding: 5,
     },
     closeButtonText: {
         fontSize: 24,
-        color: '#666'
+        color: '#666',
     },
     formActions: {
         marginTop: 20,
-        gap: 10
+        gap: 10,
     },
     actionButton: {
         borderRadius: 8,
         padding: 15,
-        alignItems: 'center'
+        alignItems: 'center',
     },
     saveButton: {
-        backgroundColor: '#007aff'
+        backgroundColor: '#007aff',
     },
     actionButtonText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 16
+        fontSize: 16,
+    },
+    editButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20
     }
 });
 
-export default CalendarScreen;
+export { formatSectionDate, formatTaskDate, formatTaskTime };
