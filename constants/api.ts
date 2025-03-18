@@ -1,11 +1,17 @@
+// constants/api.ts
+
 const API_BASE = 'https://align-cvy6.onrender.com';
 
-export const registerUser = async (username: string, email: string, password: string) => {
+export const registerUser = async (
+    username: string,
+    email: string,
+    password: string
+) => {
     try {
         const response = await fetch(`${API_BASE}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ username, email, password }),
         });
         return await response.json();
     } catch (error) {
@@ -19,7 +25,7 @@ export const loginUser = async (email: string, password: string) => {
         const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password }),
         });
         return await response.json();
     } catch (error) {
@@ -28,23 +34,63 @@ export const loginUser = async (email: string, password: string) => {
     }
 };
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_API_KEY = 'AIzaSyDbUY1_lvjXqjqEq0WAD9kEgd3nB_rArc8';
+const GEMINI_API_KEY = 'AIzaSyDbUY1_lvjXqjqEq0WAD9kEgd3nB_rArc8'; // Replace with your actual key
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-export const categorizeTask = async (task: string) => {
+export const parseTaskDetails = async (task: string) => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        const prompt = `Here is what the user inputted: "${task}". Categorize into: Study, Entertainment, Work, Event, Errand, Exercise, Household Chore. Only respond with the category name in uppercase or MANUAL.`;
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const todayDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        // Include today's date in the prompt and instruct to use it for relative dates.
+        const prompt = `TODAY'S DATE IS: ${todayDate}.
+Extract details from the following task input and return them in a single line string in the format "CATEGORY|SCHEDULED_DATE|SCHEDULED_TIME|DURATION". 
+- CATEGORY should be one of: STUDY, ENTERTAINMENT, WORK, EVENT, ERRAND, EXERCISE, HOUSEHOLD CHORE (in uppercase) or MANUAL.
+- SCHEDULED_DATE should be in YYYY-MM-DD format. If the task input does not explicitly specify a year, assume the current year (${currentYear}). 
+- If a relative date (e.g., "tomorrow") is mentioned, calculate the correct absolute date based on today's date.
+- SCHEDULED_TIME should be in HH:MM (24-hour) format (if not provided, use "12:00").
+- DURATION should be a string (e.g., "4 hours", "2 hours") (if not provided, use "30 min").
+Task: "${task}"`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const text = response.text().trim().toUpperCase();
-        const validCategories = ['STUDY', 'ENTERTAINMENT', 'WORK', 'EVENT', 'ERRAND', 'EXERCISE', 'HOUSEHOLD CHORE', 'MANUAL'];
-        return validCategories.includes(text) ? text : 'MANUAL';
+        const text = response.text().trim();
+        // Expecting format: CATEGORY|YYYY-MM-DD|HH:MM|DURATION
+        const parts = text.split('|');
+        if (parts.length < 4) {
+            throw new Error('Invalid response format');
+        }
+        const category = parts[0].trim().toUpperCase();
+        let scheduled_date = parts[1].trim();
+        const scheduled_time = parts[2].trim();
+        const duration = parts[3].trim();
+
+        // Post-process the date: if the returned scheduled_date has a year other than current but looks like it should be relative,
+        // update the year to the current year.
+        let scheduledDateObj = new Date(scheduled_date + 'T00:00:00');
+        if (scheduledDateObj.getFullYear() !== currentYear) {
+            // If the extracted date is before today but the month/day suggests it should be in the future,
+            // then update the year.
+            if (scheduledDateObj < today) {
+                const [ , month, day ] = scheduled_date.split('-');
+                scheduled_date = `${currentYear}-${month}-${day}`;
+            }
+        }
+        return { category, scheduled_date, scheduled_time, duration };
     } catch (error) {
-        console.error('Gemini API Error:', error);
-        return 'MANUAL';
+        console.error('Parse Task Details API Error:', error);
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+        const dd = today.getDate().toString().padStart(2, '0');
+        return {
+            category: 'MANUAL',
+            scheduled_date: `${yyyy}-${mm}-${dd}`,
+            scheduled_time: '12:00',
+            duration: '30 min',
+        };
     }
 };
 
@@ -64,8 +110,11 @@ export const addTask = async (task: any, token: string) => {
     try {
         const response = await fetch(`${API_BASE}/tasks`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(task)
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(task),
         });
         return await response.json();
     } catch (error) {
@@ -74,12 +123,19 @@ export const addTask = async (task: any, token: string) => {
     }
 };
 
-export const updateTask = async (taskId: string, updatedTask: any, token: string) => {
+export const updateTask = async (
+    taskId: string,
+    updatedTask: any,
+    token: string
+) => {
     try {
         const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(updatedTask)
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(updatedTask),
         });
         return await response.json();
     } catch (error) {
