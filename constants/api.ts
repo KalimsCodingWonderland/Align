@@ -1,4 +1,3 @@
-// constants/api.ts
 const API_BASE = 'https://align-cvy6.onrender.com';
 
 export const registerUser = async (username: string, email: string, password: string) => {
@@ -29,67 +28,6 @@ export const loginUser = async (email: string, password: string) => {
     }
 };
 
-export const createTask = async (token: string, task: any) => {
-    try {
-        const response = await fetch(`${API_BASE}/tasks`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(task)
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Create Task API Error:', error);
-        return { error: 'Task creation failed' };
-    }
-};
-
-export const getTasks = async (token: string) => {
-    try {
-        const response = await fetch(`${API_BASE}/tasks`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Get Tasks API Error:', error);
-        return { error: 'Failed to retrieve tasks' };
-    }
-};
-
-export const updateTask = async (token: string, taskId: string, updatedTask: any) => {
-    try {
-        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(updatedTask)
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Update Task API Error:', error);
-        return { error: 'Task update failed' };
-    }
-};
-
-export const deleteTask = async (token: string, taskId: string) => {
-    try {
-        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Delete Task API Error:', error);
-        return { error: 'Task deletion failed' };
-    }
-};
-
-// Gemini API call remains as you already have it.
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const GEMINI_API_KEY = 'AIzaSyDbUY1_lvjXqjqEq0WAD9kEgd3nB_rArc8';
@@ -102,11 +40,63 @@ export const categorizeTask = async (task: string) => {
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text().trim().toUpperCase();
-
         const validCategories = ['STUDY', 'ENTERTAINMENT', 'WORK', 'EVENT', 'ERRAND', 'EXERCISE', 'HOUSEHOLD CHORE', 'MANUAL'];
         return validCategories.includes(text) ? text : 'MANUAL';
     } catch (error) {
         console.error('Gemini API Error:', error);
         return 'MANUAL';
+    }
+};
+
+export const getTasks = async (token: string) => {
+    try {
+        const response = await fetch(`${API_BASE}/tasks`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Get Tasks API Error:', error);
+        return { error: 'Failed to fetch tasks' };
+    }
+};
+
+export const addTask = async (task: any, token: string) => {
+    try {
+        const response = await fetch(`${API_BASE}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(task)
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Add Task API Error:', error);
+        return { error: 'Failed to add task' };
+    }
+};
+
+export const updateTask = async (taskId: string, updatedTask: any, token: string) => {
+    try {
+        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(updatedTask)
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Update Task API Error:', error);
+        return { error: 'Failed to update task' };
+    }
+};
+
+export const deleteTask = async (taskId: string, token: string) => {
+    try {
+        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Delete Task API Error:', error);
+        return { error: 'Failed to delete task' };
     }
 };

@@ -1,19 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-    View,
-    Text,
-    Alert,
-    Animated,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    Keyboard,
-} from 'react-native';
+import { View, Text, Alert, Animated, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { loginUser } from '../constants/api';
 import AnimatedInput from '../components/AnimatedInput';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Custom animated button with a subtle scaling effect on press
 const AnimatedButton = ({ title, onPress, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
     const onPressIn = () => {
@@ -48,7 +39,7 @@ export default function LoginScreen() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const fadeAnim = useRef(new Animated.Value(0)).current; // Fade-in animation
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -62,7 +53,8 @@ export default function LoginScreen() {
         try {
             const response = await loginUser(email, password);
             console.log('Login API Response:', response);
-            if (response.message) {
+            if (response.message && response.token) {
+                await AsyncStorage.setItem('token', response.token);
                 Alert.alert('Success', response.message);
                 router.push('/calendar');
             } else {
@@ -77,26 +69,12 @@ export default function LoginScreen() {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-                {/* Minimalistic Back Button */}
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Text style={styles.backButtonText}>← Back</Text>
                 </TouchableOpacity>
-
                 <Text style={styles.title}>🔑 Login</Text>
-                <AnimatedInput
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                />
-                <AnimatedInput
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
+                <AnimatedInput placeholder="Email" value={email} onChangeText={setEmail} />
+                <AnimatedInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
                 <AnimatedButton title="Login" onPress={handleLogin} style={styles.button} />
             </Animated.View>
         </TouchableWithoutFeedback>
