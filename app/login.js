@@ -58,7 +58,7 @@ export default function LoginScreen() {
             if (response.message && response.token) {
                 await AsyncStorage.setItem('token', response.token);
                 Alert.alert('Success', response.message);
-                router.push('/calendar');
+                router.push('/taskManagment');
             } else {
                 Alert.alert('Error', response.error || 'Invalid credentials');
             }
