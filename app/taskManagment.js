@@ -305,12 +305,13 @@ export default function CalendarScreen() {
         const duration = task.completionTime || task.time;
         if (duration && duration.includes(':')) {
             const [cHour, cMinute] = duration.split(':');
-            setEditCompletionHour(cHour.padStart(2, '0'));
-            setEditCompletionMinute(cMinute.padStart(2, '0'));
+            setEditCompletionHour(String(Number(cHour)));
+            setEditCompletionMinute(cMinute);
         } else {
-            setEditCompletionHour("00");
-            setEditCompletionMinute("00");
+            setEditCompletionHour("0");
+            setEditCompletionMinute("0");
         }
+
 
         // Set date correctly
         const yyyy = taskDate.getUTCFullYear();
