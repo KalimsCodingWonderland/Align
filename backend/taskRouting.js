@@ -16,7 +16,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         let predicted = false;
         // If duration is the default "30 min", use ML prediction
-        if (time === "30 min") {
+        if (time === "00:30" || time === "30 min") {
             try {
                 const mlResponse = await fetch('http://localhost:5001/ml/predict', {
                     method: 'POST',
