@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
     View,
     Text,
@@ -15,7 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
-
+import { Animated } from 'react-native';
 import AddTaskTab from '../components/addTask';
 import ListViewTab from '../components/listView';
 import CalendarViewTab from '../components/calendar';
@@ -131,6 +131,7 @@ const formatTaskDate = (dateString) => {
         .toUpperCase();
     return `${month}/${day} - ${weekday}`;
 };
+
 
 export default function CalendarScreen() {
     const router = useRouter();
@@ -438,18 +439,26 @@ export default function CalendarScreen() {
         if (!feedbackTask) return;
         const predictedMinutes = timeToMinutes(feedbackTask.time);
         let userDuration = predictedMinutes;
+        let updatedTask = { ...feedbackTask, predicted: false }; // mark feedback as given
+
         if (!isAccurate) {
             const corrected = parseInt(correctedDuration, 10);
             if (!isNaN(corrected)) {
                 userDuration = corrected;
+                // Convert corrected minutes to HH:MM string:
+                const hrs = Math.floor(corrected / 60);
+                const mins = corrected % 60;
+                updatedTask.time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
             }
         }
+
+        // Send feedback to ML endpoint
         try {
             const response = await fetch('https://align-cvy6.onrender.com/ml/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: feedbackTask.user, // assuming the task includes a user id
+                    userId: feedbackTask.user, // assuming task includes a user id
                     category: feedbackTask.category,
                     predicted_duration: predictedMinutes,
                     user_duration: userDuration,
@@ -460,9 +469,21 @@ export default function CalendarScreen() {
         } catch (error) {
             console.error('Feedback error:', error);
         }
+
+        // Update the task in the database & local state
+        const result = await updateTask(feedbackTask._id, updatedTask, token);
+        if (result._id) {
+            setTasks(prevTasks =>
+                prevTasks.map(task => (task._id === result._id ? result : task))
+            );
+        } else {
+            Alert.alert('Error', 'Failed to update task with feedback');
+        }
+
         setFeedbackModalVisible(false);
         setFeedbackTask(null);
     };
+
 
     const renderTaskItem = ({ item, index, showFullDate }) => (
         <TouchableOpacity onPress={() => handleEditTask(item)}>
@@ -486,8 +507,11 @@ export default function CalendarScreen() {
                     )}
                 </View>
                 {item.predicted && (
-                    <TouchableOpacity onPress={() => handleFeedback(item)}>
-                        <Text style={{ color: 'blue', marginTop: 5 }}>Was this duration accurate?</Text>
+                    <TouchableOpacity
+                        style={styles.feedbackTriggerButton}
+                        onPress={() => handleFeedback(item)}
+                    >
+                        <Text style={styles.feedbackTriggerButtonText}>Was Align AI accurate?</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -527,26 +551,43 @@ export default function CalendarScreen() {
         }
     };
 
-    // Feedback Modal UI
+    const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (feedbackModalVisible) {
+            Animated.timing(feedbackModalOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [feedbackModalVisible]);
+
     const renderFeedbackModal = () => (
-        <Modal visible={feedbackModalVisible} transparent={true} animationType="slide">
+        <Modal visible={feedbackModalVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
+                <Animated.View style={[styles.feedbackModalContent, { opacity: feedbackModalOpacity }]}>
                     {feedbackTask && (
                         <>
-                            <Text style={styles.modalTitle}>Feedback for Predicted Duration</Text>
-                            <Text style={{ marginBottom: 10 }}>
-                                The predicted duration is {feedbackTask.time} (≈ {timeToMinutes(feedbackTask.time)} minutes).
+                            <Text style={styles.feedbackModalTitle}>ALIGN AI</Text>
+                            <Text
+                                style={styles.feedbackInfoText}>{`The predicted duration is: \n ${(() => { const [h, m] = feedbackTask.time.split(':').map(Number); return (h ? `${h} hour${h > 1 ? 's' : ''}` : '') + (h && m ? ' ' : '') + (m ? `${m} minute${m > 1 ? 's' : ''}` : ''); })()}`}
                             </Text>
                             {!awaitingCorrection ? (
                                 <>
-                                    <Text>Was this duration accurate?</Text>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 }}>
-                                        <TouchableOpacity onPress={() => submitFeedback(true)}>
-                                            <Text style={{ color: 'green', fontSize: 16 }}>Yes</Text>
+                                    <Text style={styles.feedbackQuestion}>Is Align AI's guess accurate?</Text>
+                                    <View style={styles.feedbackButtonRow}>
+                                        <TouchableOpacity
+                                            style={styles.feedbackButton}
+                                            onPress={() => submitFeedback(true)}
+                                        >
+                                            <Text style={styles.feedbackButtonText}>Yes</Text>
                                         </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => setAwaitingCorrection(true)}>
-                                            <Text style={{ color: 'red', fontSize: 16 }}>No, enter correct duration</Text>
+                                        <TouchableOpacity
+                                            style={styles.feedbackButton}
+                                            onPress={() => setAwaitingCorrection(true)}
+                                        >
+                                            <Text style={styles.feedbackButtonText}>No, Update</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </>
@@ -559,13 +600,26 @@ export default function CalendarScreen() {
                                         value={correctedDuration}
                                         onChangeText={setCorrectedDuration}
                                     />
-                                    <Button title="Submit Correction" onPress={() => submitFeedback(false)} />
+                                    <TouchableOpacity
+                                        style={[styles.feedbackButton, { marginTop: 10 }]}
+                                        onPress={() => submitFeedback(false)}
+                                    >
+                                        <Text style={styles.feedbackButtonText}>Submit Correction</Text>
+                                    </TouchableOpacity>
                                 </>
                             )}
-                            <Button title="Cancel" onPress={() => { setFeedbackModalVisible(false); setFeedbackTask(null); }} />
+                            <TouchableOpacity
+                                style={styles.feedbackCancelButton}
+                                onPress={() => {
+                                    setFeedbackModalVisible(false);
+                                    setFeedbackTask(null);
+                                }}
+                            >
+                                <Text style={styles.feedbackCancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
                         </>
                     )}
-                </View>
+                </Animated.View>
             </View>
         </Modal>
     );
