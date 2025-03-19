@@ -21,7 +21,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 const mlResponse = await fetch('https://alignml.onrender.com/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: req.user._id, category }),
+                    body: JSON.stringify({ user_id: req.user._id, category }),
                 });
                 const mlData = await mlResponse.json();
                 if (mlData && mlData.predicted_duration) {
