@@ -27,9 +27,10 @@ const CalendarViewTab = ({
             {selectedDate && (
                 <FlatList
                     contentContainerStyle={{ marginTop: 20, paddingBottom: 60 }}
-                    data={tasks.filter(
-                        (task) => getLocalDateKey(task.date) === selectedDate
-                    )}
+                    data={tasks
+                        .filter((task) => getLocalDateKey(task.date) === selectedDate)
+                        .sort((a, b) => new Date(a.date) - new Date(b.date))
+                }
                     keyExtractor={(item) => item._id || Math.random().toString()}
                     renderItem={({ item, index }) =>
                         renderTaskItem({ item, index, showFullDate: false })
