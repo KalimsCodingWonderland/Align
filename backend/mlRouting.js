@@ -2,7 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const router = express.Router();
 
-const ML_SERVICE_URL = 'http://localhost:5002';
+const ML_SERVICE_URL = 'https://alignml.onrender.com';
 
 router.post('/predict', async (req, res) => {
     try {
