@@ -69,6 +69,17 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: 4, // Add this line
+    },
+    timeRangeContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    timeRangeText: {
+        fontSize: 14,
+        color: '#666',
+        fontWeight: '500',
     },
     categoryLabel: {
         padding: 5,
