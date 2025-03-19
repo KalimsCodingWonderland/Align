@@ -1,10 +1,16 @@
 // components/addTask.js
-
 import React from 'react';
-import { TextInput, FlatList, TouchableOpacity, Text } from 'react-native';
+import { TextInput, FlatList, TouchableOpacity, Text, View } from 'react-native';
 import { styles } from '../app/styles';
 
-const AddTaskTab = ({ taskInput, setTaskInput, handleAddTask, tasks, renderTaskItem }) => {
+const AddTaskTab = ({
+                        taskInput,
+                        setTaskInput,
+                        handleAddTask,
+                        tasks,
+                        renderTaskItem,
+                        hasConflict
+                    }) => {
     return (
         <>
             <TextInput
@@ -15,9 +21,27 @@ const AddTaskTab = ({ taskInput, setTaskInput, handleAddTask, tasks, renderTaskI
                 onChangeText={setTaskInput}
                 onSubmitEditing={handleAddTask}
             />
-            <TouchableOpacity style={styles.addTaskButton} onPress={handleAddTask}>
-                <Text style={styles.addTaskButtonText}>ALIGN</Text>
+
+            {hasConflict && (
+                <View style={styles.conflictAlert}>
+                    <Text style={styles.conflictText}>
+                        ⚠️ Time conflict detected! Tap ALIGN to schedule anyway
+                    </Text>
+                </View>
+            )}
+
+            <TouchableOpacity
+                style={[
+                    styles.addTaskButton,
+                    hasConflict && { backgroundColor: '#ff4444' }
+                ]}
+                onPress={handleAddTask}
+            >
+                <Text style={styles.addTaskButtonText}>
+                    {hasConflict ? 'ALIGN ANYWAY' : 'ALIGN'}
+                </Text>
             </TouchableOpacity>
+
             <FlatList
                 data={tasks}
                 keyExtractor={(item) => item._id || Math.random().toString()}

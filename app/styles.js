@@ -40,6 +40,17 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 1,            // Adds a little extra spacing for a refined look
     },
+    conflictAlert: {
+        backgroundColor: '#ffcccc',
+        padding: 15,
+        borderRadius: 10,
+        margin: 10,
+    },
+    conflictText: {
+        color: '#cc0000',
+        textAlign: 'center',
+        fontWeight: 'bold',
+    },
     taskItem: {
         backgroundColor: 'white',
         padding: 15,

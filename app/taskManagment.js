@@ -189,6 +189,15 @@ export default function CalendarScreen() {
                 time: normalizeDuration(duration),
                 date: newTaskDate.toISOString(),
             };
+
+            const newTaskStart = new Date(newTask.date);
+            const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
+
+            if (conflict) {
+                const proceed = await confirmConflict();
+                if (!proceed) return;
+            }
+
             const result = await addTask(newTask, token);
             if (result._id) {
                 setTasks((prev) => [...prev, result]);
@@ -199,10 +208,53 @@ export default function CalendarScreen() {
         }
     };
 
-    const handleManualCategory = async (selectedCategory) => {
-        const timeMatch = currentTask.text.match(
-            /\d+\s*(min|minutes|hour|hours)/i
+    const confirmConflict = () => {
+        return new Promise((resolve) => {
+            Alert.alert(
+                'Time Conflict',
+                'This task overlaps with an existing task. Would you like to schedule it anyway?',
+                [
+                    { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+                    { text: 'Align Anyway', onPress: () => resolve(true) },
+                ],
+                { cancelable: false }
+            );
+        });
+    };
+
+    const isSameUTCDate = (date1, date2) => {
+        return (
+            date1.getUTCFullYear() === date2.getUTCFullYear() &&
+            date1.getUTCMonth() === date2.getUTCMonth() &&
+            date1.getUTCDate() === date2.getUTCDate()
         );
+    };
+
+    const durationToMilliseconds = (duration) => {
+        const [hours, minutes] = duration.split(':').map(Number);
+        return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
+    };
+
+    const checkTimeConflict = (newStart, duration, existingTasks) => {
+        const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
+        for (const task of existingTasks) {
+            const taskStart = new Date(task.date);
+            if (!isSameUTCDate(newStart, taskStart)) continue;
+
+            const taskDuration = task.time;
+            const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
+
+            if (newStart < taskEnd && taskStart < newEnd) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+
+
+    const handleManualCategory = async (selectedCategory) => {
+        const timeMatch = currentTask.text.match(/(\d+)\s*(min|minutes|hour|hours)/i);
         const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : '00:30';
         const newTask = {
             text: currentTask.text,
@@ -210,6 +262,19 @@ export default function CalendarScreen() {
             time: estimatedTime,
             date: currentTask.date,
         };
+
+        const newTaskStart = new Date(newTask.date);
+        const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
+
+        if (conflict) {
+            const proceed = await confirmConflict();
+            if (!proceed) {
+                setShowCategoryModal(false);
+                setCurrentTask(null);
+                return;
+            }
+        }
+
         const result = await addTask(newTask, token);
         if (result._id) {
             setTasks((prev) => [...prev, result]);
@@ -226,25 +291,28 @@ export default function CalendarScreen() {
         setEditingTask(task);
         setEditTaskInput(task.text);
         setEditCategory(task.category);
+
         const taskDate = new Date(task.date);
         const hour24 = taskDate.getUTCHours();
         const amPm = hour24 >= 12 ? "PM" : "AM";
         const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
         setEditHour(hour12.toString());
         setEditMinute(taskDate.getUTCMinutes().toString().padStart(2, '0'));
         setEditAmPm(amPm);
 
-        // Retrieve the completion time from the DB (either completionTime or time)
+        // Set completion time correctly
         const duration = task.completionTime || task.time;
         if (duration && duration.includes(':')) {
             const [cHour, cMinute] = duration.split(':');
-            setEditCompletionHour(String(Number(cHour)));
-            setEditCompletionMinute(cMinute);
+            setEditCompletionHour(cHour.padStart(2, '0'));
+            setEditCompletionMinute(cMinute.padStart(2, '0'));
         } else {
-            setEditCompletionHour("0");
-            setEditCompletionMinute("0");
+            setEditCompletionHour("00");
+            setEditCompletionMinute("00");
         }
 
+        // Set date correctly
         const yyyy = taskDate.getUTCFullYear();
         const mm = (taskDate.getUTCMonth() + 1).toString().padStart(2, '0');
         const dd = taskDate.getUTCDate().toString().padStart(2, '0');
@@ -258,12 +326,22 @@ export default function CalendarScreen() {
     const saveEditedTask = async () => {
         const taskToEdit = editingTask;
         if (!taskToEdit) return;
+
+        // Create updated date object
         const [year, month, day] = editDate.split('-');
         let hour = Number(editHour);
         if (editAmPm === "PM" && hour < 12) hour += 12;
         if (editAmPm === "AM" && hour === 12) hour = 0;
-        const updatedDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), hour, Number(editMinute), 0));
+        const updatedDate = new Date(Date.UTC(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            hour,
+            Number(editMinute),
+            0
+        ));
 
+        // Create updated task object
         const updatedTask = {
             ...taskToEdit,
             text: editTaskInput,
@@ -272,16 +350,35 @@ export default function CalendarScreen() {
             time: `${editCompletionHour.padStart(2, '0')}:${editCompletionMinute.padStart(2, '0')}`,
         };
 
-        const result = await updateTask(taskToEdit._id, updatedTask, token);
-        if (result._id) {
-            setTasks((prevTasks) =>
-                prevTasks.map((task) =>
-                    task._id === taskToEdit._id ? result : task
-                )
+        try {
+            // Check for conflicts with other tasks (excluding current task being edited)
+            const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
+            const conflict = checkTimeConflict(
+                new Date(updatedTask.date),
+                updatedTask.time,
+                otherTasks
             );
-            setEditingTask(null);
-        } else {
-            Alert.alert('Error', result.error || 'Failed to update task');
+
+            if (conflict) {
+                const proceed = await confirmConflict();
+                if (!proceed) return;
+            }
+
+            // Perform the update
+            const result = await updateTask(taskToEdit._id, updatedTask, token);
+            if (result._id) {
+                setTasks(prevTasks =>
+                    prevTasks.map(task =>
+                        task._id === taskToEdit._id ? result : task
+                    )
+                );
+                setEditingTask(null); // Close modal
+            } else {
+                Alert.alert('Error', result.error || 'Failed to update task');
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            Alert.alert('Error', 'Failed to save changes');
         }
     };
 
