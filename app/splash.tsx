@@ -1,9 +1,7 @@
-//app/splash.tsx
-
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
 import { useEffect, useRef } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function SplashScreen() {
@@ -17,19 +15,20 @@ export default function SplashScreen() {
     useEffect(() => {
         const timer = setTimeout(() => {
             router.replace('./userAuth');
-        }, 3950); // safety fallback
+        }, 3400);
         return () => clearTimeout(timer);
     }, []);
 
     return (
         <LinearGradient
-            colors={['#d8d8d8', '#d3d3d3']} // top red, bottom blue
-            style={styles.container}>
+            colors={['white', 'white']} // Replace these with your video's top and bottom colors
+            style={styles.container}
+        >
             <Video
                 ref={video}
-                source={require('../assets/AlignIntro.mp4')}
+                source={require('../assets/upscaledAlignIntro.mp4')}
                 style={styles.video}
-                resizeMode={ResizeMode.STRETCH}
+                resizeMode={ResizeMode.CONTAIN}
                 isLooping={false}
                 shouldPlay
                 onPlaybackStatusUpdate={(status) => {
@@ -47,9 +46,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     video: {
-        left: 10,
-        width: '250%',
-        height: 900,
+        width: 600,
+        height: 600,
         alignSelf: 'center',
+        // Adjust 'top' or margins as needed to position your video
+        marginTop: 140,
+        zIndex: 2,
     },
 });
