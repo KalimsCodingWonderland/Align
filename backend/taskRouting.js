@@ -1,24 +1,50 @@
 // backend/taskRouting.js
 
 const express = require('express');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const Task = require('./models/Task');
 const authMiddleware = require('./middleware/auth');
 
 const router = express.Router();
 
-// Create a new task
+// Create a new task with ML prediction if duration is default "30 min"
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { text, category, time, date } = req.body;
+        let { text, category, time, date } = req.body;
         if (!text || !category || !time || !date) {
             return res.status(400).json({ error: 'Missing task fields' });
+        }
+        let predicted = false;
+        // If duration is the default "30 min", use ML prediction
+        if (time === "00:30" || time === "30 min") {
+            try {
+                const mlResponse = await fetch('https://alignml.onrender.com/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: req.user._id, category }),
+                });
+                const mlData = await mlResponse.json();
+                if (mlData && mlData.predicted_duration) {
+                    let minutes = mlData.predicted_duration;
+                    let hrs = Math.floor(minutes / 60);
+                    let mins = minutes % 60;
+                    time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                    predicted = true;
+                } else {
+                    time = "00:30";
+                }
+            } catch (err) {
+                console.error('ML prediction error:', err);
+                time = "00:30";
+            }
         }
         const newTask = new Task({
             user: req.user._id,
             text,
             category,
             time,
-            date
+            date,
+            predicted,
         });
         const savedTask = await newTask.save();
         res.json(savedTask);

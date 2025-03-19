@@ -1,6 +1,4 @@
-// app/taskManagment.js
-
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
     View,
     Text,
@@ -17,7 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
-
+import { Animated } from 'react-native';
 import AddTaskTab from '../components/addTask';
 import ListViewTab from '../components/listView';
 import CalendarViewTab from '../components/calendar';
@@ -42,11 +40,10 @@ const categories = [
     'OTHER',
 ];
 
-// New helper function to normalize duration strings to HH:MM format.
+// Helper functions remain unchanged.
 const normalizeDuration = (durationStr) => {
     if (!durationStr) return '00:00';
     if (durationStr.includes(':')) {
-        // Assume it's already in HH:MM format; pad if needed.
         const [h, m] = durationStr.split(':');
         const hours = Number(h).toString().padStart(2, '0');
         const minutes = Number(m).toString().padStart(2, '0');
@@ -63,13 +60,10 @@ const normalizeDuration = (durationStr) => {
         if (minuteMatch) {
             minutes = parseInt(minuteMatch[1], 10);
         }
-        return `${hours.toString().padStart(2, '0')}:${minutes
-            .toString()
-            .padStart(2, '0')}`;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     }
 };
 
-// Updated formatting function: displays scheduled time in 12-hour format based on UTC values.
 const formatTaskTime = (dateString) => {
     const date = new Date(dateString);
     let hours = date.getUTCHours();
@@ -80,7 +74,6 @@ const formatTaskTime = (dateString) => {
     return `${hours}:${minutes} ${ampm}`;
 };
 
-// Format a time string (HH:MM in 24-hour) into 12-hour format with AM/PM.
 const formatCompletionTime = (timeStr) => {
     if (!timeStr) return "";
     const [hStr, mStr] = timeStr.split(':');
@@ -104,6 +97,14 @@ const formatDuration = (durationStr) => {
         return parts.length > 0 ? parts.join(' ') : '0 min';
     }
     return durationStr;
+};
+
+const calculateEndTime = (startDate, duration) => {
+    const [hours, minutes] = duration.split(':').map(Number);
+    const endTime = new Date(startDate);
+    endTime.setUTCHours(endTime.getUTCHours() + hours);
+    endTime.setUTCMinutes(endTime.getUTCMinutes() + minutes);
+    return formatTaskTime(endTime.toISOString());
 };
 
 const formatSectionDate = (dateString) => {
@@ -131,6 +132,7 @@ const formatTaskDate = (dateString) => {
     return `${month}/${day} - ${weekday}`;
 };
 
+
 export default function CalendarScreen() {
     const router = useRouter();
     const [token, setToken] = useState(null);
@@ -151,6 +153,12 @@ export default function CalendarScreen() {
     const [editCompletionMinute, setEditCompletionMinute] = useState("00");
     const [completionPeriod, setCompletionPeriod] = useState("AM");
     const [editAmPm, setEditAmPm] = useState("AM");
+
+    // State for feedback modal
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [feedbackTask, setFeedbackTask] = useState(null);
+    const [awaitingCorrection, setAwaitingCorrection] = useState(false);
+    const [correctedDuration, setCorrectedDuration] = useState("");
 
     useEffect(() => {
         const loadTokenAndTasks = async () => {
@@ -190,6 +198,7 @@ export default function CalendarScreen() {
                 date: newTaskDate.toISOString(),
             };
 
+            // Check for time conflict (existing function)
             const newTaskStart = new Date(newTask.date);
             const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
 
@@ -251,8 +260,6 @@ export default function CalendarScreen() {
         return false;
     };
 
-
-
     const handleManualCategory = async (selectedCategory) => {
         const timeMatch = currentTask.text.match(/(\d+)\s*(min|minutes|hour|hours)/i);
         const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : '00:30';
@@ -286,7 +293,6 @@ export default function CalendarScreen() {
         }
     };
 
-    // When editing, convert the task's scheduled and completion times using UTC values.
     const handleEditTask = (task) => {
         setEditingTask(task);
         setEditTaskInput(task.text);
@@ -301,7 +307,6 @@ export default function CalendarScreen() {
         setEditMinute(taskDate.getUTCMinutes().toString().padStart(2, '0'));
         setEditAmPm(amPm);
 
-        // Set completion time correctly
         const duration = task.completionTime || task.time;
         if (duration && duration.includes(':')) {
             const [cHour, cMinute] = duration.split(':');
@@ -312,8 +317,6 @@ export default function CalendarScreen() {
             setEditCompletionMinute("0");
         }
 
-
-        // Set date correctly
         const yyyy = taskDate.getUTCFullYear();
         const mm = (taskDate.getUTCMonth() + 1).toString().padStart(2, '0');
         const dd = taskDate.getUTCDate().toString().padStart(2, '0');
@@ -328,7 +331,6 @@ export default function CalendarScreen() {
         const taskToEdit = editingTask;
         if (!taskToEdit) return;
 
-        // Create updated date object
         const [year, month, day] = editDate.split('-');
         let hour = Number(editHour);
         if (editAmPm === "PM" && hour < 12) hour += 12;
@@ -342,7 +344,6 @@ export default function CalendarScreen() {
             0
         ));
 
-        // Create updated task object
         const updatedTask = {
             ...taskToEdit,
             text: editTaskInput,
@@ -352,7 +353,6 @@ export default function CalendarScreen() {
         };
 
         try {
-            // Check for conflicts with other tasks (excluding current task being edited)
             const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
             const conflict = checkTimeConflict(
                 new Date(updatedTask.date),
@@ -365,7 +365,6 @@ export default function CalendarScreen() {
                 if (!proceed) return;
             }
 
-            // Perform the update
             const result = await updateTask(taskToEdit._id, updatedTask, token);
             if (result._id) {
                 setTasks(prevTasks =>
@@ -373,7 +372,7 @@ export default function CalendarScreen() {
                         task._id === taskToEdit._id ? result : task
                     )
                 );
-                setEditingTask(null); // Close modal
+                setEditingTask(null);
             } else {
                 Alert.alert('Error', result.error || 'Failed to update task');
             }
@@ -421,17 +420,100 @@ export default function CalendarScreen() {
         }, {});
     };
 
+    // Helper: Convert HH:MM to minutes
+    const timeToMinutes = (timeStr) => {
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    // Feedback handling: when user taps the feedback button on a predicted task.
+    const handleFeedback = (item) => {
+        setFeedbackTask(item);
+        setAwaitingCorrection(false);
+        setCorrectedDuration("");
+        setFeedbackModalVisible(true);
+    };
+
+    // Submit feedback to the backend ML endpoint
+    const submitFeedback = async (isAccurate) => {
+        if (!feedbackTask) return;
+        const predictedMinutes = timeToMinutes(feedbackTask.time);
+        let userDuration = predictedMinutes;
+        let updatedTask = { ...feedbackTask, predicted: false }; // mark feedback as given
+
+        if (!isAccurate) {
+            const corrected = parseInt(correctedDuration, 10);
+            if (!isNaN(corrected)) {
+                userDuration = corrected;
+                // Convert corrected minutes to HH:MM string:
+                const hrs = Math.floor(corrected / 60);
+                const mins = corrected % 60;
+                updatedTask.time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Send feedback to ML endpoint
+        try {
+            const response = await fetch('https://align-cvy6.onrender.com/ml/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: feedbackTask.user, // assuming task includes a user id
+                    category: feedbackTask.category,
+                    predicted_duration: predictedMinutes,
+                    user_duration: userDuration,
+                }),
+            });
+            const data = await response.json();
+            console.log('Feedback response:', data);
+        } catch (error) {
+            console.error('Feedback error:', error);
+        }
+
+        // Update the task in the database & local state
+        const result = await updateTask(feedbackTask._id, updatedTask, token);
+        if (result._id) {
+            setTasks(prevTasks =>
+                prevTasks.map(task => (task._id === result._id ? result : task))
+            );
+        } else {
+            Alert.alert('Error', 'Failed to update task with feedback');
+        }
+
+        setFeedbackModalVisible(false);
+        setFeedbackTask(null);
+    };
+
+
     const renderTaskItem = ({ item, index, showFullDate }) => (
         <TouchableOpacity onPress={() => handleEditTask(item)}>
             <View style={styles.taskItem}>
                 <Text style={styles.taskText}>{item.text}</Text>
+                <View style={styles.timeRangeContainer}>
+                    <Text style={styles.timeRangeText}>
+                        🕒 {formatTaskTime(item.date)}
+                    </Text>
+                    <Text style={styles.timeRangeText}>
+                        → 🕒 {calculateEndTime(item.date, item.completionTime || item.time)}
+                    </Text>
+                </View>
                 <View style={styles.taskDetails}>
                     <Text style={[styles.categoryLabel, { backgroundColor: getCategoryColor(item.category) }]}>
                         {item.category.toLowerCase()}
                     </Text>
-                    <Text style={styles.timeText}>{formatTaskTime(item.date)}</Text>
                     <Text style={styles.timeText}>⏱ {formatDuration(item.completionTime || item.time)}</Text>
+                    {item.predicted && (
+                        <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 Predicted</Text>
+                    )}
                 </View>
+                {item.predicted && (
+                    <TouchableOpacity
+                        style={styles.feedbackTriggerButton}
+                        onPress={() => handleFeedback(item)}
+                    >
+                        <Text style={styles.feedbackTriggerButtonText}>Was Align AI accurate?</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -468,6 +550,79 @@ export default function CalendarScreen() {
                 );
         }
     };
+
+    const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (feedbackModalVisible) {
+            Animated.timing(feedbackModalOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [feedbackModalVisible]);
+
+    const renderFeedbackModal = () => (
+        <Modal visible={feedbackModalVisible} transparent={true} animationType="fade">
+            <View style={styles.modalContainer}>
+                <Animated.View style={[styles.feedbackModalContent, { opacity: feedbackModalOpacity }]}>
+                    {feedbackTask && (
+                        <>
+                            <Text style={styles.feedbackModalTitle}>ALIGN AI</Text>
+                            <Text
+                                style={styles.feedbackInfoText}>{`The predicted duration is: \n ${(() => { const [h, m] = feedbackTask.time.split(':').map(Number); return (h ? `${h} hour${h > 1 ? 's' : ''}` : '') + (h && m ? ' ' : '') + (m ? `${m} minute${m > 1 ? 's' : ''}` : ''); })()}`}
+                            </Text>
+                            {!awaitingCorrection ? (
+                                <>
+                                    <Text style={styles.feedbackQuestion}>Is Align AI's guess accurate?</Text>
+                                    <View style={styles.feedbackButtonRow}>
+                                        <TouchableOpacity
+                                            style={styles.feedbackButton}
+                                            onPress={() => submitFeedback(true)}
+                                        >
+                                            <Text style={styles.feedbackButtonText}>Yes</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.feedbackButton}
+                                            onPress={() => setAwaitingCorrection(true)}
+                                        >
+                                            <Text style={styles.feedbackButtonText}>No, Update</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <TextInput
+                                        style={[styles.input, { marginTop: 10 }]}
+                                        placeholder="Enter duration in minutes"
+                                        keyboardType="numeric"
+                                        value={correctedDuration}
+                                        onChangeText={setCorrectedDuration}
+                                    />
+                                    <TouchableOpacity
+                                        style={[styles.feedbackButton, { marginTop: 10 }]}
+                                        onPress={() => submitFeedback(false)}
+                                    >
+                                        <Text style={styles.feedbackButtonText}>Submit Correction</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                            <TouchableOpacity
+                                style={styles.feedbackCancelButton}
+                                onPress={() => {
+                                    setFeedbackModalVisible(false);
+                                    setFeedbackTask(null);
+                                }}
+                            >
+                                <Text style={styles.feedbackCancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </Animated.View>
+            </View>
+        </Modal>
+    );
 
     return (
         <View style={styles.container}>
@@ -620,6 +775,7 @@ export default function CalendarScreen() {
                 </View>
             </Modal>
             {renderTasks()}
+            {renderFeedbackModal()}
             <View style={styles.tabBar}>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}

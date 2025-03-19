@@ -2,14 +2,13 @@
 
 const mongoose = require('mongoose');
 
-const taskSchema = new mongoose.Schema({
+const TaskSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     text: { type: String, required: true },
     category: { type: String, required: true },
-    time: { type: String, required: true },
+    time: { type: String, required: true }, // Stored in HH:MM format
     date: { type: Date, required: true },
-    created_at: { type: Date, default: Date.now }
+    predicted: { type: Boolean, default: false }
 });
 
-const Task = mongoose.model('Task', taskSchema);
-module.exports = Task;
+module.exports = mongoose.model('Task', TaskSchema);
