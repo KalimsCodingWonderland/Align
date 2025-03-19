@@ -18,7 +18,7 @@ router.post('/', authMiddleware, async (req, res) => {
         // If duration is the default "30 min", use ML prediction
         if (time === "00:30" || time === "30 min") {
             try {
-                const mlResponse = await fetch('https://alignml.onrender.com/ml/predict', {
+                const mlResponse = await fetch('https://alignml.onrender.com/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: req.user._id, category }),
