@@ -1,7 +1,7 @@
 // backend/taskRouting.js
 
 const express = require('express');
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 const Task = require('./models/Task');
 const authMiddleware = require('./middleware/auth');
 
