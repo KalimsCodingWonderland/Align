@@ -2,6 +2,8 @@
 import React from 'react';
 import { TextInput, FlatList, TouchableOpacity, Text, View } from 'react-native';
 import { styles } from '../app/styles';
+import { useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const AddTaskTab = ({
                         taskInput,
@@ -11,6 +13,9 @@ const AddTaskTab = ({
                         renderTaskItem,
                         hasConflict
                     }) => {
+
+    const router = useRouter();
+
     return (
         <>
             <TextInput
@@ -40,6 +45,14 @@ const AddTaskTab = ({
                 <Text style={styles.addTaskButtonText}>
                     {hasConflict ? 'ALIGN ANYWAY' : 'ALIGN'}
                 </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.scanButton}
+                onPress={() => router.push('/paperImport')}
+            >
+                <MaterialIcons name="scanner" size={20} color="white" />
+                <Text style={styles.scanButtonText}>ALIGN PAPER</Text>
             </TouchableOpacity>
 
             <FlatList

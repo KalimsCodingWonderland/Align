@@ -186,6 +186,22 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
+    scanButton: {
+        backgroundColor: '#FF6B6B',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        borderRadius: 25,
+        marginVertical: 10,
+    },
+    scanButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
     categoryButton: {
         padding: 15,
         borderBottomWidth: 1,
