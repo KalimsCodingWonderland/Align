@@ -22,7 +22,6 @@ import { Animated } from 'react-native';
 import AddTaskTab from '../components/addTask';
 import ListViewTab from '../components/listView';
 import CalendarViewTab from '../components/calendar';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { styles, getCategoryColor } from './styles';
 import {
     categorizeTask,
@@ -239,17 +238,6 @@ export default function CalendarScreen() {
     const [awaitingCorrection, setAwaitingCorrection] = useState(false);
     const [correctedDuration, setCorrectedDuration] = useState("");
 
-    // State for Recurrence
-
-    const [recurrenceFrequency, setRecurrenceFrequency] = useState('none');
-    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
-    const [recurrenceDays, setRecurrenceDays] = useState([]);
-    const [recurrenceEndCondition, setRecurrenceEndCondition] = useState('never');
-    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
-    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(1);
-    const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
-    const [suggestedRecurrence, setSuggestedRecurrence] = useState(null);
-
     // Fetch tasks once on mount (or whenever this screen is pushed)
     useFocusEffect(
         React.useCallback(() => {
@@ -316,7 +304,6 @@ export default function CalendarScreen() {
             if (result._id) {
                 setTasks((prev) => [...prev, result]);
                 setTaskInput('');
-                checkForPatterns(result); // Add pattern check
             } else {
                 Alert.alert('Error', result.error || 'Failed to add task');
             }
@@ -397,34 +384,6 @@ export default function CalendarScreen() {
             setTaskInput('');
         } else {
             Alert.alert('Error', result.error || 'Failed to add task');
-        }
-    };
-
-    const checkForPatterns = async (newTask) => {
-        const existingTasks = tasks.filter(t =>
-            t.category === newTask.category &&
-            new Date(t.date).getUTCHours() === new Date(newTask.date).getUTCHours() &&
-            new Date(t.date).getUTCMinutes() === new Date(newTask.date).getUTCMinutes()
-        );
-
-        const dayCounts = {};
-        existingTasks.forEach(t => {
-            const day = new Date(t.date).getUTCDay();
-            dayCounts[day] = (dayCounts[day] || 0) + 1;
-        });
-
-        const frequentDays = Object.entries(dayCounts)
-            .filter(([_, count]) => count >= 2)
-            .map(([day]) => parseInt(day));
-
-        if (frequentDays.length > 0) {
-            setSuggestedRecurrence({
-                frequency: 'weekly',
-                interval: 1,
-                days: frequentDays,
-                endCondition: 'never'
-            });
-            setShowRecurrenceModal(true);
         }
     };
 
@@ -699,91 +658,6 @@ export default function CalendarScreen() {
         }
     }, [feedbackModalVisible]);
 
-    const RecurrenceModal = ({ visible, onClose, onConfirm, suggestion }) => (
-        <Modal visible={visible} transparent={true}>
-            <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Schedule Recurrence</Text>
-                    <Text>We noticed a pattern! Create recurring task?</Text>
-
-                    <Picker
-                        selectedValue={recurrenceFrequency}
-                        onValueChange={setRecurrenceFrequency}
-                    >
-                        <Picker.Item label="Does not repeat" value="none" />
-                        <Picker.Item label="Daily" value="daily" />
-                        <Picker.Item label="Weekly" value="weekly" />
-                        <Picker.Item label="Monthly" value="monthly" />
-                    </Picker>
-
-                    {recurrenceFrequency === 'weekly' && (
-                        <View style={styles.daysContainer}>
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                                <TouchableOpacity
-                                    key={day}
-                                    style={[
-                                        styles.dayButton,
-                                        recurrenceDays.includes(i) && styles.selectedDay
-                                    ]}
-                                    onPress={() => setRecurrenceDays(prev =>
-                                        prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
-                                    )}
-                                >
-                                    <Text>{day}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-
-                    <View style={styles.recurrenceOptions}>
-                        <Picker
-                            selectedValue={recurrenceEndCondition}
-                            onValueChange={setRecurrenceEndCondition}
-                        >
-                            <Picker.Item label="Never ends" value="never" />
-                            <Picker.Item label="Ends on date" value="date" />
-                            <Picker.Item label="Ends after occurrences" value="occurrences" />
-                        </Picker>
-
-                        {recurrenceEndCondition === 'date' && (
-                            <DateTimePicker
-                                value={recurrenceEndDate || new Date()}
-                                mode="date"
-                                display="default"
-                                onChange={(event, date) => setRecurrenceEndDate(date)}
-                                minimumDate={new Date()}
-                            />
-                        )}
-
-                        {recurrenceEndCondition === 'occurrences' && (
-                            <TextInput
-                                placeholder="Number of occurrences"
-                                value={String(recurrenceOccurrences)}
-                                onChangeText={t => setRecurrenceOccurrences(Number(t) || 1)}
-                                keyboardType="numeric"
-                            />
-                        )}
-                    </View>
-
-                    <View style={styles.modalButtons}>
-                        <Button title="Cancel" onPress={onClose} />
-                        <Button title="Confirm" onPress={() => {
-                            onConfirm({
-                                frequency: recurrenceFrequency,
-                                interval: recurrenceInterval,
-                                daysOfWeek: recurrenceDays,
-                                endCondition: recurrenceEndCondition,
-                                endDate: recurrenceEndDate,
-                                occurrences: recurrenceOccurrences
-                            });
-                            onClose();
-                        }} />
-                    </View>
-                </View>
-            </View>
-        </Modal>
-    );
-
     const renderFeedbackModal = () => (
         <Modal visible={feedbackModalVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
@@ -884,64 +758,6 @@ export default function CalendarScreen() {
                             <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
                         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-                            <Text style={styles.label}>Recurrence</Text>
-                            <Picker
-                                selectedValue={recurrenceFrequency}
-                                onValueChange={setRecurrenceFrequency}
-                            >
-                                <Picker.Item label="Does not repeat" value="none" />
-                                <Picker.Item label="Daily" value="daily" />
-                                <Picker.Item label="Weekly" value="weekly" />
-                                <Picker.Item label="Monthly" value="monthly" />
-                            </Picker>
-
-                            {recurrenceFrequency === 'weekly' && (
-                                <View style={styles.daysContainer}>
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                                        <TouchableOpacity
-                                            key={day}
-                                            style={[
-                                                styles.dayButton,
-                                                recurrenceDays.includes(i) && styles.selectedDay
-                                            ]}
-                                            onPress={() => setRecurrenceDays(prev =>
-                                                prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
-                                            )}
-                                        >
-                                            <Text>{day}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            )}
-
-                            <Text style={styles.label}>End Condition</Text>
-                            <Picker
-                                selectedValue={recurrenceEndCondition}
-                                onValueChange={setRecurrenceEndCondition}
-                            >
-                                <Picker.Item label="Never ends" value="never" />
-                                <Picker.Item label="Ends on date" value="date" />
-                                <Picker.Item label="Ends after occurrences" value="occurrences" />
-                            </Picker>
-
-                            {recurrenceEndCondition === 'date' && (
-                                <DateTimePicker
-                                    value={recurrenceEndDate || new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, date) => setRecurrenceEndDate(date)}
-                                    minimumDate={new Date()}
-                                />
-                            )}
-
-                            {recurrenceEndCondition === 'occurrences' && (
-                                <TextInput
-                                    placeholder="Number of occurrences"
-                                    value={String(recurrenceOccurrences)}
-                                    onChangeText={t => setRecurrenceOccurrences(Number(t) || 1)}
-                                    keyboardType="numeric"
-                                />
-                            )}
                             <Text style={styles.modalTitle}>Edit Task</Text>
                             <Text style={styles.label}>Original Input</Text>
                             <TextInput
