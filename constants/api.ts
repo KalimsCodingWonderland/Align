@@ -52,7 +52,7 @@ Extract details from the following task input and return them in a single line s
 - SCHEDULED_DATE should be in YYYY-MM-DD format. If the task input does not explicitly specify a year, assume the current year (${currentYear}). 
 - If a relative date (e.g., "tomorrow") is mentioned, calculate the correct absolute date based on today's date.
 - SCHEDULED_TIME should be in HH:MM (24-hour) format (if not provided, use "12:00").
-- DURATION should be a string (e.g., "4 hours", "2 hours") (if not provided, use "30 min").
+- DURATION should be a string (e.g., "4 hours", "2 hours") (if not provided, use "DEFAULT").
 Task: "${task}"`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -108,7 +108,7 @@ export const parseImageTasks = async (imageBase64: string) => {
     2. Use 24-hour time format
     3. If time isn't specified, assume 12:00 PM
     4. If date isn't specified, assume ${todayDate}.
-    5. If duration isn't specified, estimate based on context
+    5. If duration isn't specified, use "DEFAULT"
     6. Handle abbreviations (e.g., 'math hw' → 'math homework')
     
     Example:

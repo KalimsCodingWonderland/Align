@@ -45,7 +45,7 @@ const categories = [
 
 // Helper functions remain unchanged.
 const normalizeDuration = (durationStr) => {
-    if (!durationStr) return '00:00';
+    if (!durationStr) return "DEFAULT";
     if (durationStr.includes(':')) {
         const [h, m] = durationStr.split(':');
         const hours = Number(h).toString().padStart(2, '0');
@@ -97,12 +97,13 @@ const formatDuration = (durationStr) => {
         if (m > 0) {
             parts.push(`${m} min`);
         }
-        return parts.length > 0 ? parts.join(' ') : '0 min';
+        return parts.length > 0 ? parts.join(' ') : "DEFAULT";
     }
     return durationStr;
 };
 
 const calculateEndTime = (startDate, duration) => {
+    if (duration === "DEFAULT") duration = "DEFAULT";
     const [hours, minutes] = duration.split(':').map(Number);
     const endTime = new Date(startDate);
     endTime.setUTCHours(endTime.getUTCHours() + hours);
@@ -244,6 +245,7 @@ export default function CalendarScreen() {
     };
 
     const durationToMilliseconds = (duration) => {
+        if (duration === 'DEFAULT') duration = 'DEFAULT';
         const [hours, minutes] = duration.split(':').map(Number);
         return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
     };
@@ -266,7 +268,7 @@ export default function CalendarScreen() {
 
     const handleManualCategory = async (selectedCategory) => {
         const timeMatch = currentTask.text.match(/(\d+)\s*(min|minutes|hour|hours)/i);
-        const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : '00:30';
+        const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : "DEFAULT";
         const newTask = {
             text: currentTask.text,
             category: selectedCategory,
