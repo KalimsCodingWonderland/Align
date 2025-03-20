@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules." />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="TypeScript File" />
+        <option value="JavaScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;KalimsCodingWonderland&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/KalimsCodingWonderland/Align.git&quot;,
+    &quot;accountId&quot;: &quot;f23f3bbd-5519-4e42-a5bb-d377eaa9f023&quot;
+  }
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="2uKJkzTv3B4io9Mjl64ydlwC8Tv" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;KalimBranch&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/kalim/WebstormProjects/Align/assets&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\kalim\\WebstormProjects\\Align\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\kalim\WebstormProjects\Align\constants" />
+      <recent name="C:\Users\kalim\WebstormProjects\Align\components" />
+      <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-7c0b70fcd90d-JavaScript-WS-242.21829.149" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="" />
+      <created>1741991480752</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1741991480752</updated>
+      <workItem from="1741991482159" duration="588000" />
+      <workItem from="1742053252615" duration="13809000" />
+      <workItem from="1742068131951" duration="230000" />
+      <workItem from="1742219158255" duration="2296000" />
+      <workItem from="1742221511493" duration="852000" />
+      <workItem from="1742222418882" duration="11429000" />
+      <workItem from="1742241346324" duration="573000" />
+      <workItem from="1742312325776" duration="31045000" />
+      <workItem from="1742405802226" duration="11752000" />
+      <workItem from="1742417743826" duration="11413000" />
+      <workItem from="1742433796796" duration="8353000" />
+      <workItem from="1742442341874" duration="23000" />
+      <workItem from="1742442682393" duration="4001000" />
+      <workItem from="1742484827723" duration="23725000" />
+    </task>
+    <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
+      <option name="closed" value="true" />
+      <created>1742068026186</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1742068026186</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Trying to deploy backend for team access.">
+      <option name="closed" value="true" />
+      <created>1742221228269</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1742221228269</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Trying to deploy backend for team access. #2">
+      <option name="closed" value="true" />
+      <created>1742223279941</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1742223279941</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Changed back to locally hosted DB.">
+      <option name="closed" value="true" />
+      <created>1742224113336</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1742224113336</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Trying to host backend for team. #3">
+      <option name="closed" value="true" />
+      <created>1742225134190</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1742225134190</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Trying to host backend for team. #4">
+      <option name="closed" value="true" />
+      <created>1742226210672</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1742226210672</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Trying to host backend for team. #5">
+      <option name="closed" value="true" />
+      <created>1742226810992</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1742226810992</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Trying to host backend for team. #6">
+      <option name="closed" value="true" />
+      <created>1742227177776</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1742227177776</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Trying to host backend for team. #7">
+      <option name="closed" value="true" />
+      <created>1742227730885</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1742227730885</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Trying to host backend for team. #8">
+      <option name="closed" value="true" />
+      <created>1742227954413</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1742227954413</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Trying to host backend for team. #9">
+      <option name="closed" value="true" />
+      <created>1742228098792</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1742228098792</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Back to locally hosted DB.">
+      <option name="closed" value="true" />
+      <created>1742228501294</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1742228501294</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Trying to deploy DB.">
+      <option name="closed" value="true" />
+      <created>1742229927298</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1742229927298</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Deployed DB.">
+      <option name="closed" value="true" />
+      <created>1742230875569</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1742230875569</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Trying to add tasks to DB.">
+      <option name="closed" value="true" />
+      <created>1742315581881</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1742315581881</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Trying to add tasks to DB. #2">
+      <option name="closed" value="true" />
+      <created>1742319114890</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1742319114890</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Trying to add tasks to DB. #3">
+      <option name="closed" value="true" />
+      <created>1742319310503</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1742319310503</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Trying to add tasks to DB. #4">
+      <option name="closed" value="true" />
+      <created>1742319466953</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1742319466953</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Connected Tasks to the Data Base.&#10;Prompt engineered Gemeni to extract more information (completion time, scheduled time, date of task).&#10;Improved the UI of the edit task item modal.">
+      <option name="closed" value="true" />
+      <created>1742337602954</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1742337602954</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Upscaled the living daylights out of our Intro.">
+      <option name="closed" value="true" />
+      <created>1742345201386</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1742345201386</updated>
+    </task>
+    <task id="LOCAL-00021" summary="File split the calendar.js file into addTask.js, calendar.js, listView.js, styles.js, and taskManagment.js. Fixed an issue with the edit modal not edditing the correct task. Fixed a little styling issues/ cleaned up some of the looks.">
+      <option name="closed" value="true" />
+      <created>1742413041342</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1742413041342</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Added conflict checking.">
+      <option name="closed" value="true" />
+      <created>1742415560266</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1742415560266</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Made the calendar view sort tasks by time.">
+      <option name="closed" value="true" />
+      <created>1742416261667</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1742416261667</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Trying to implement a random forest regressor for completion time.">
+      <option name="closed" value="true" />
+      <created>1742419204454</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1742419204454</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Trying to implement a random forest regressor for completion time. #2">
+      <option name="closed" value="true" />
+      <created>1742419414016</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1742419414016</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Trying to implement a random forest regressor for completion time. #3">
+      <option name="closed" value="true" />
+      <created>1742419769584</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1742419769584</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Trying to implement a random forest regressor for completion time. #4">
+      <option name="closed" value="true" />
+      <created>1742420824095</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1742420824095</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Trying to implement a random forest regressor for completion time. #5">
+      <option name="closed" value="true" />
+      <created>1742423425132</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1742423425132</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Trying to implement a random forest regressor for completion time. #6">
+      <option name="closed" value="true" />
+      <created>1742423788894</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1742423788894</updated>
+    </task>
+    <task id="LOCAL-00030" summary="Trying to implement a random forest regressor for completion time. #7">
+      <option name="closed" value="true" />
+      <created>1742424077744</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1742424077744</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Trying to implement a random forest regressor for completion time. #8">
+      <option name="closed" value="true" />
+      <created>1742424265376</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1742424265376</updated>
+    </task>
+    <task id="LOCAL-00032" summary="Trying to implement a random forest regressor for completion time. #9">
+      <option name="closed" value="true" />
+      <created>1742424538811</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1742424538811</updated>
+    </task>
+    <task id="LOCAL-00033" summary="Trying to implement a random forest regressor for completion time. #10">
+      <option name="closed" value="true" />
+      <created>1742425796066</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1742425796066</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Succesfully deployed a ML Random Forest Regressor to learn from users historical data of tasks based on their category and predict accurate completion times for the task when one isnt provided by the user. Implemented a human in the loop edit modal for this ML prediction where the user can either affirm or reject and update it to refine the models predictions. Styled the components with consistent coloring etc.">
+      <option name="closed" value="true" />
+      <created>1742428279355</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1742428279355</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Trying to fix ML Model training requirments.">
+      <option name="closed" value="true" />
+      <created>1742428788060</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1742428788060</updated>
+    </task>
+    <task id="LOCAL-00036" summary="Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead.">
+      <option name="closed" value="true" />
+      <created>1742487700303</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1742487700303</updated>
+    </task>
+    <task id="LOCAL-00037" summary=" #2 Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead.">
+      <option name="closed" value="true" />
+      <created>1742488470008</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1742488470008</updated>
+    </task>
+    <task id="LOCAL-00038" summary="Fixed bug where Align Paper was not utilizing the ML Prediction Model properly. Fix this by making the paperImport use a default value of DEFAULT and change the Gemini prompt to account for this.">
+      <option name="closed" value="true" />
+      <created>1742489542820</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1742489542820</updated>
+    </task>
+    <task id="LOCAL-00039" summary="Fixed a bug where Align Paper was not properly prompting for manual category if a category was not detected. Fixed a bug where Align Paper was not properly prompting for a time conflict if detected. Refined the time conflict logic and alert so that it notifys the user what task is being conflicted with.">
+      <option name="closed" value="true" />
+      <created>1742495371407</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1742495371407</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Trying to add recurring task logic. #1">
+      <option name="closed" value="true" />
+      <created>1742498827252</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1742498827252</updated>
+    </task>
+    <task id="LOCAL-00041" summary="Revert.">
+      <option name="closed" value="true" />
+      <created>1742500632037</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1742500632037</updated>
+    </task>
+    <task id="LOCAL-00042" summary="Trying to add task recurrence functionality. #2">
+      <option name="closed" value="true" />
+      <created>1742502398489</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1742502398489</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules.">
+      <option name="closed" value="true" />
+      <created>1742507526151</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1742507526151</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Connected Tasks to the Data Base.&#10;Prompt engineered Gemeni to extract more information (completion time, scheduled time, date of task).&#10;Improved the UI of the edit task item modal." />
+    <MESSAGE value="Upscaled the living daylights out of our Intro." />
+    <MESSAGE value="File split the calendar.js file into addTask.js, calendar.js, listView.js, styles.js, and taskManagment.js. Fixed an issue with the edit modal not edditing the correct task. Fixed a little styling issues/ cleaned up some of the looks." />
+    <MESSAGE value="Added conflict checking." />
+    <MESSAGE value="Made the calendar view sort tasks by time." />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time." />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #2" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #3" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #4" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #5" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #6" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #7" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #8" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #9" />
+    <MESSAGE value="Trying to implement a random forest regressor for completion time. #10" />
+    <MESSAGE value="Succesfully deployed a ML Random Forest Regressor to learn from users historical data of tasks based on their category and predict accurate completion times for the task when one isnt provided by the user. Implemented a human in the loop edit modal for this ML prediction where the user can either affirm or reject and update it to refine the models predictions. Styled the components with consistent coloring etc." />
+    <MESSAGE value="Trying to fix ML Model training requirments." />
+    <MESSAGE value="Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead." />
+    <MESSAGE value=" #2 Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead." />
+    <MESSAGE value="Fixed bug where Align Paper was not utilizing the ML Prediction Model properly. Fix this by making the paperImport use a default value of DEFAULT and change the Gemini prompt to account for this." />
+    <MESSAGE value="Fixed a bug where Align Paper was not properly prompting for manual category if a category was not detected. Fixed a bug where Align Paper was not properly prompting for a time conflict if detected. Refined the time conflict logic and alert so that it notifys the user what task is being conflicted with." />
+    <MESSAGE value="Trying to add recurring task logic. #1" />
+    <MESSAGE value="Revert." />
+    <MESSAGE value="Trying to add task recurrence functionality. #2" />
+    <MESSAGE value="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules." />
+  </component>
+</project>
