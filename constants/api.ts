@@ -108,7 +108,7 @@ export const parseImageTasks = async (imageBase64: string) => {
     2. Use 24-hour time format
     3. If time isn't specified, assume 12:00 PM
     4. If date isn't specified, assume ${todayDate}.
-    5. If duration isn't specified, estimate based on context
+    5. If duration isn't specified, use "DEFAULT"
     6. Handle abbreviations (e.g., 'math hw' → 'math homework')
     
     Example:
