@@ -1,4 +1,6 @@
-import React, {useState, useEffect, useRef} from 'react';
+// app/taskManagment.js
+
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -12,6 +14,7 @@ import {
     Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from 'expo-router';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
@@ -114,9 +117,9 @@ const formatSectionDate = (dateString) => {
     const weekday = date.toLocaleDateString(undefined, { weekday: 'long', timeZone: 'UTC' });
     const dayInt = parseInt(day, 10);
     const ordinal = (n) => {
-        const s = ['th', 'st', 'nd', 'rd'];
+        const s = ['th','st','nd','rd'];
         const v = n % 100;
-        return s[(v - 20) % 10] || s[v] || s[0];
+        return s[(v-20)%10] || s[v] || s[0];
     };
     const ordinalDay = `${dayInt}${ordinal(dayInt)}`;
     return `${monthName} ${ordinalDay}, ${year} - ${weekday}`;
@@ -131,7 +134,6 @@ const formatTaskDate = (dateString) => {
         .toUpperCase();
     return `${month}/${day} - ${weekday}`;
 };
-
 
 export default function CalendarScreen() {
     const router = useRouter();
@@ -160,19 +162,22 @@ export default function CalendarScreen() {
     const [awaitingCorrection, setAwaitingCorrection] = useState(false);
     const [correctedDuration, setCorrectedDuration] = useState("");
 
-    useEffect(() => {
-        const loadTokenAndTasks = async () => {
-            const storedToken = await AsyncStorage.getItem('token');
-            if (storedToken) {
-                setToken(storedToken);
-                const tasksFromApi = await getTasks(storedToken);
-                if (Array.isArray(tasksFromApi)) {
-                    setTasks(tasksFromApi);
+    // Fetch tasks once on mount (or whenever this screen is pushed)
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadTokenAndTasks = async () => {
+                const storedToken = await AsyncStorage.getItem('token');
+                if (storedToken) {
+                    setToken(storedToken);
+                    const tasksFromApi = await getTasks(storedToken);
+                    if (Array.isArray(tasksFromApi)) {
+                        setTasks(tasksFromApi);
+                    }
                 }
-            }
-        };
-        loadTokenAndTasks();
-    }, []);
+            };
+            loadTokenAndTasks();
+        }, [])
+    );
 
     const getLocalDateKey = (dateStr) => {
         return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'UTC' });
@@ -198,7 +203,6 @@ export default function CalendarScreen() {
                 date: newTaskDate.toISOString(),
             };
 
-            // Check for time conflict (existing function)
             const newTaskStart = new Date(newTask.date);
             const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
 
@@ -426,7 +430,7 @@ export default function CalendarScreen() {
         return h * 60 + m;
     };
 
-    // Feedback handling: when user taps the feedback button on a predicted task.
+    // Feedback handling
     const handleFeedback = (item) => {
         setFeedbackTask(item);
         setAwaitingCorrection(false);
@@ -434,31 +438,29 @@ export default function CalendarScreen() {
         setFeedbackModalVisible(true);
     };
 
-    // Submit feedback to the backend ML endpoint
     const submitFeedback = async (isAccurate) => {
         if (!feedbackTask) return;
         const predictedMinutes = timeToMinutes(feedbackTask.time);
         let userDuration = predictedMinutes;
-        let updatedTask = { ...feedbackTask, predicted: false }; // mark feedback as given
+        let updatedTask = { ...feedbackTask, predicted: false };
 
         if (!isAccurate) {
             const corrected = parseInt(correctedDuration, 10);
             if (!isNaN(corrected)) {
                 userDuration = corrected;
-                // Convert corrected minutes to HH:MM string:
                 const hrs = Math.floor(corrected / 60);
                 const mins = corrected % 60;
                 updatedTask.time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
             }
         }
 
-        // Send feedback to ML endpoint
+        // Send feedback to ML (optional for your environment)
         try {
             const response = await fetch('https://align-cvy6.onrender.com/ml/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: feedbackTask.user, // assuming task includes a user id
+                    userId: feedbackTask.user,
                     category: feedbackTask.category,
                     predicted_duration: predictedMinutes,
                     user_duration: userDuration,
@@ -470,7 +472,7 @@ export default function CalendarScreen() {
             console.error('Feedback error:', error);
         }
 
-        // Update the task in the database & local state
+        // Update the task in DB and local state
         const result = await updateTask(feedbackTask._id, updatedTask, token);
         if (result._id) {
             setTasks(prevTasks =>
@@ -483,7 +485,6 @@ export default function CalendarScreen() {
         setFeedbackModalVisible(false);
         setFeedbackTask(null);
     };
-
 
     const renderTaskItem = ({ item, index, showFullDate }) => (
         <TouchableOpacity onPress={() => handleEditTask(item)}>
@@ -570,8 +571,15 @@ export default function CalendarScreen() {
                     {feedbackTask && (
                         <>
                             <Text style={styles.feedbackModalTitle}>ALIGN AI</Text>
-                            <Text
-                                style={styles.feedbackInfoText}>{`The predicted duration is: \n ${(() => { const [h, m] = feedbackTask.time.split(':').map(Number); return (h ? `${h} hour${h > 1 ? 's' : ''}` : '') + (h && m ? ' ' : '') + (m ? `${m} minute${m > 1 ? 's' : ''}` : ''); })()}`}
+                            <Text style={styles.feedbackInfoText}>
+                                {`The predicted duration is: \n ${
+                                    (() => {
+                                        const [h, m] = feedbackTask.time.split(':').map(Number);
+                                        return (h ? `${h} hour${h > 1 ? 's' : ''}` : '')
+                                            + (h && m ? ' ' : '')
+                                            + (m ? `${m} minute${m > 1 ? 's' : ''}` : '');
+                                    })()
+                                }`}
                             </Text>
                             {!awaitingCorrection ? (
                                 <>
@@ -626,6 +634,7 @@ export default function CalendarScreen() {
 
     return (
         <View style={styles.container}>
+            {/* Category selection modal */}
             <Modal visible={showCategoryModal} transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
@@ -643,6 +652,7 @@ export default function CalendarScreen() {
                 </View>
             </Modal>
 
+            {/* Task editing modal */}
             <Modal visible={editingTask !== null} transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.editModalContent}>
@@ -774,8 +784,10 @@ export default function CalendarScreen() {
                     </View>
                 </View>
             </Modal>
+
             {renderTasks()}
             {renderFeedbackModal()}
+
             <View style={styles.tabBar}>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}
