@@ -186,6 +186,26 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
+    recurrenceDaysContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginVertical: 10,
+    },
+    dayButton: {
+        padding: 10,
+        margin: 3,
+        borderRadius: 5,
+        backgroundColor: '#f0f0f0',
+    },
+    selectedDay: {
+        backgroundColor: '#007aff',
+    },
+    dayText: {
+        color: '#333',
+    },
+    selectedDayText: {
+        color: 'white',
+    },
     scanButton: {
         backgroundColor: '#FF6B6B',
         flexDirection: 'row',

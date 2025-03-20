@@ -31,6 +31,7 @@ import {
     updateTask,
     deleteTask,
 } from '../constants/api';
+import {generateRecurringTasks} from "../constants/recurrence";
 
 const categories = [
     'STUDY',
@@ -238,6 +239,14 @@ export default function CalendarScreen() {
     const [awaitingCorrection, setAwaitingCorrection] = useState(false);
     const [correctedDuration, setCorrectedDuration] = useState("");
 
+    // State for recurrence modal
+    const [recurrenceType, setRecurrenceType] = useState('none');
+    const [recurrenceDays, setRecurrenceDays] = useState([]);
+    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+    const [recurrenceEndType, setRecurrenceEndType] = useState('never');
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(1);
+
     // Fetch tasks once on mount (or whenever this screen is pushed)
     useFocusEffect(
         React.useCallback(() => {
@@ -391,6 +400,12 @@ export default function CalendarScreen() {
         setEditingTask(task);
         setEditTaskInput(task.text);
         setEditCategory(task.category);
+        setRecurrenceType(task.recurrence?.type || 'none');
+        setRecurrenceDays(task.recurrence?.daysOfWeek || []);
+        setRecurrenceInterval(task.recurrence?.interval || 1);
+        setRecurrenceEndType(task.recurrence?.endType || 'never');
+        setRecurrenceEndDate(task.recurrence?.endDate ? new Date(task.recurrence.endDate) : '');
+        setRecurrenceOccurrences(task.recurrence?.occurrences || 1);
 
         const taskDate = new Date(task.date);
         const hour24 = taskDate.getUTCHours();
@@ -444,7 +459,17 @@ export default function CalendarScreen() {
             date: updatedDate.toISOString(),
             category: editCategory,
             time: `${editCompletionHour.padStart(2, '0')}:${editCompletionMinute.padStart(2, '0')}`,
+            recurrence: recurrenceType !== 'none' ? {
+                type: recurrenceType,
+                daysOfWeek: recurrenceDays,
+                interval: recurrenceInterval,
+                endType: recurrenceEndType,
+                endDate: recurrenceEndType === 'date' ? recurrenceEndDate : null,
+                occurrences: recurrenceEndType === 'count' ? recurrenceOccurrences : null
+            } : null,
+            isRecurring: recurrenceType !== 'none'
         };
+
 
         try {
             // We exclude the current task from the conflict check
@@ -494,7 +519,9 @@ export default function CalendarScreen() {
     };
 
     const groupTasksByDate = () => {
-        const grouped = tasks.reduce((acc, task) => {
+        const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
+
+        const grouped = expandedTasks.reduce((acc, task) => {
             const dateKey = getLocalDateKey(task.date);
             if (!acc[dateKey]) acc[dateKey] = [];
             acc[dateKey].push(task);
@@ -767,6 +794,81 @@ export default function CalendarScreen() {
                                 placeholder="Edit your task text here"
                             />
                             <Text style={styles.label}>Category</Text>
+                            {/* Recurrence Settings */}
+                            <Text style={styles.label}>Recurrence Pattern</Text>
+                            <Picker
+                                selectedValue={recurrenceType}
+                                onValueChange={setRecurrenceType}
+                                style={styles.input}>
+                                <Picker.Item label="No Recurrence" value="none" />
+                                <Picker.Item label="Daily" value="daily" />
+                                <Picker.Item label="Weekly" value="weekly" />
+                                <Picker.Item label="Monthly" value="monthly" />
+                                <Picker.Item label="Yearly" value="yearly" />
+                                <Picker.Item label="Custom Days" value="custom" />
+                            </Picker>
+
+                            {recurrenceType === 'weekly' || recurrenceType === 'custom' ? (
+                                <View style={styles.recurrenceDaysContainer}>
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                        <TouchableOpacity
+                                            key={day}
+                                            style={[
+                                                styles.dayButton,
+                                                recurrenceDays.includes(index) && styles.selectedDay
+                                            ]}
+                                            onPress={() => {
+                                                const updatedDays = [...recurrenceDays];
+                                                const dayIndex = updatedDays.indexOf(index);
+                                                if (dayIndex === -1) {
+                                                    updatedDays.push(index);
+                                                } else {
+                                                    updatedDays.splice(dayIndex, 1);
+                                                }
+                                                setRecurrenceDays(updatedDays);
+                                            }}>
+                                            <Text style={styles.dayText}>{day}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ) : null}
+
+                            <Text style={styles.label}>Repeat Every:</Text>
+                            <TextInput
+                                style={styles.input}
+                                keyboardType="numeric"
+                                value={String(recurrenceInterval)}
+                                onChangeText={text => setRecurrenceInterval(Number(text) || 1)}
+                            />
+
+                            <Text style={styles.label}>Ends:</Text>
+                            <Picker
+                                selectedValue={recurrenceEndType}
+                                onValueChange={setRecurrenceEndType}
+                                style={styles.input}>
+                                <Picker.Item label="Never" value="never" />
+                                <Picker.Item label="On Date" value="date" />
+                                <Picker.Item label="After Occurrences" value="count" />
+                            </Picker>
+
+                            {recurrenceEndType === 'date' && (
+                                <DateTimePicker
+                                    value={recurrenceEndDate || new Date()}
+                                    mode="date"
+                                    display="default"
+                                    onChange={(event, date) => setRecurrenceEndDate(date)}
+                                />
+                            )}
+
+                            {recurrenceEndType === 'count' && (
+                                <TextInput
+                                    style={styles.input}
+                                    keyboardType="numeric"
+                                    placeholder="Number of occurrences"
+                                    value={String(recurrenceOccurrences)}
+                                    onChangeText={text => setRecurrenceOccurrences(Number(text))}
+                                />
+                            )}
                             <Picker
                                 selectedValue={editCategory}
                                 onValueChange={(itemValue) => setEditCategory(itemValue)}

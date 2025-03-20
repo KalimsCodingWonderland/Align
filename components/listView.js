@@ -3,6 +3,7 @@
 import React from 'react';
 import { Text, SectionList } from 'react-native';
 import { styles } from '../app/styles';
+import {generateRecurringTasks} from "../constants/recurrence";
 
 const ListViewTab = ({ groupTasksByDate, renderTaskItem }) => {
     return (
