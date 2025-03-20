@@ -94,6 +94,44 @@ Task: "${task}"`;
     }
 };
 
+export const parseImageTasks = async (imageBase64: string) => {
+    try {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const todayDate = today.toISOString().split('T')[0];
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const prompt = `Carefully analyze this image of a handwritten weekly schedule. Extract all tasks with their dates, times, and durations. Format each task as:
+    "Task: [description] | Date: YYYY-MM-DD | Time: HH:MM | Duration: X minutes X hours"
+    
+    Follow these rules:
+    1. Convert all dates to ISO format (YYYY-MM-DD) 
+    2. Use 24-hour time format
+    3. If time isn't specified, assume 12:00 PM
+    4. If date isn't specified, assume ${todayDate}.
+    5. If duration isn't specified, estimate based on context
+    6. Handle abbreviations (e.g., 'math hw' → 'math homework')
+    
+    Example:
+    "Task: Team meeting | Date: 2024-03-20 | Time: 14:30 | Duration: 1 hour"`;
+
+        const imagePart = {
+            inlineData: {
+                data: imageBase64,
+                mimeType: 'image/jpeg',
+            },
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
+        return text.split('\n').filter(t => t.trim());
+    } catch (error) {
+        console.error('Image processing error:', error);
+        return [];
+    }
+};
+
+
 export const getTasks = async (token: string) => {
     try {
         const response = await fetch(`${API_BASE}/tasks`, {
