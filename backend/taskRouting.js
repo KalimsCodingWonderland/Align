@@ -16,7 +16,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         let predicted = false;
         // If duration is the default "30 min", use ML prediction
-        if (time === "DEFAULT") {
+        if (time === "00:00" || time === "DEFAULT") {
             // Count tasks for this category for the current user
             const count = await Task.countDocuments({ user: req.user._id, category });
             if (count < 5) {
