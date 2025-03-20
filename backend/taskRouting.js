@@ -7,47 +7,6 @@ const authMiddleware = require('./middleware/auth');
 
 const router = express.Router();
 
-const generateRecurringInstances = (task, recurrence) => {
-    const instances = [];
-    let currentDate = new Date(task.date);
-    const endConditions = {
-        date: recurrence.endDate ? new Date(recurrence.endDate) : null,
-        occurrences: recurrence.occurrences || Infinity
-    };
-
-    let count = 0;
-    while (count < endConditions.occurrences) {
-        if (endConditions.date && currentDate > endConditions.date) break;
-
-        instances.push({
-            ...task,
-            _id: undefined,
-            originalTaskId: task._id,
-            date: new Date(currentDate),
-            recurrence: {
-                ...recurrence,
-                isRecurring: true
-            }
-        });
-
-        // Increment based on frequency
-        switch (recurrence.frequency) {
-            case 'daily':
-                currentDate.setDate(currentDate.getDate() + recurrence.interval);
-                break;
-            case 'weekly':
-                currentDate.setDate(currentDate.getDate() + (7 * recurrence.interval));
-                break;
-            case 'monthly':
-                currentDate.setMonth(currentDate.getMonth() + recurrence.interval);
-                break;
-        }
-        count++;
-    }
-
-    return instances;
-};
-
 // Create a new task with ML prediction if duration is default "30 min"
 router.post('/', authMiddleware, async (req, res) => {
     try {
@@ -95,12 +54,6 @@ router.post('/', authMiddleware, async (req, res) => {
         });
         const savedTask = await newTask.save();
         res.json(savedTask);
-        if (req.body.recurrence && req.body.recurrence.frequency !== 'none') {
-            const instances = generateRecurringInstances(newTask, req.body.recurrence);
-            await Task.insertMany(instances);
-        }
-
-        res.json(newTask);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Server error' });
