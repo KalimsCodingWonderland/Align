@@ -3,12 +3,20 @@
 const mongoose = require('mongoose');
 
 const TaskSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    text: { type: String, required: true },
-    category: { type: String, required: true },
-    time: { type: String, required: true }, // Stored in HH:MM format
-    date: { type: Date, required: true },
-    predicted: { type: Boolean, default: false }
+    // ...existing fields
+    recurrence: {
+        frequency: {
+            type: String,
+            enum: ['none', 'daily', 'weekly', 'monthly'],
+            default: 'none'
+        },
+        interval: Number,
+        daysOfWeek: [Number], // For weekly (0-6, Sunday-Saturday)
+        endDate: Date,
+        occurrences: Number,
+        originalTaskId: mongoose.Schema.Types.ObjectId
+    },
+    isRecurring: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
