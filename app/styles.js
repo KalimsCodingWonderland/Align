@@ -10,35 +10,33 @@ export const styles = StyleSheet.create({
         backgroundColor: '#f5f6fa',
     },
     input: {
-        height: 50,
-        borderColor: '#332e2e',
+        height: 46,
         borderWidth: 1,
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 16,
         backgroundColor: 'white',
     },
     addTaskButton: {
-        backgroundColor: '#007aff',  // A vibrant blue color
-        borderRadius: 25,            // Fully rounded corners for a sleek look
+        backgroundColor: '#007aff',
+        borderRadius: 25,
         paddingVertical: 15,
         paddingHorizontal: 30,
         marginVertical: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        // Subtle shadow for iOS
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
-        // Elevation for Android
         elevation: 3,
     },
     addTaskButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
-        letterSpacing: 1,            // Adds a little extra spacing for a refined look
+        letterSpacing: 1,
     },
     conflictAlert: {
         backgroundColor: '#ffcccc',
@@ -69,7 +67,7 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 4, // Add this line
+        marginTop: 4,
     },
     timeRangeContainer: {
         flexDirection: 'row',
@@ -186,26 +184,82 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
-    recurrenceDaysContainer: {
+
+    /*** UPDATED RECURRENCE STYLES BELOW ***/
+    recurrenceContainer: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 20,
+        marginVertical: 10,
+        borderWidth: 1,
+        borderColor: '#e3e3e3',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#1a1a1a',
+        marginBottom: 20,
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#404040',
+        marginBottom: 8,
+    },
+    pickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    picker: {
+        bottom: 80,
+        height: 46,
+        backgroundColor: '#f8f8f8',
+    },
+    daysGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginVertical: 10,
+        gap: 8,
     },
     dayButton: {
-        padding: 10,
-        margin: 3,
-        borderRadius: 5,
-        backgroundColor: '#f0f0f0',
+        width: 44,
+        height: 44,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'white',
     },
     selectedDay: {
         backgroundColor: '#007aff',
+        borderColor: '#007aff',
     },
     dayText: {
-        color: '#333',
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#666',
     },
     selectedDayText: {
         color: 'white',
     },
+    datePickerWrapper: {
+        marginTop: 12,
+        backgroundColor: '#f8f8f8',
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+
+    /*** REMAINING STYLES UNTOUCHED ***/
     scanButton: {
         backgroundColor: '#FF6B6B',
         flexDirection: 'row',
@@ -254,19 +308,17 @@ export const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'center',
         position: 'absolute',
-        bottom: 40, // moved a bit higher
+        bottom: 40,
         left: 0,
         right: 0,
         backgroundColor: '#ffffff',
         paddingVertical: 30,
         borderTopWidth: 1,
         borderTopColor: '#ccc',
-        // Shadow for iOS
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        // Elevation for Android
         elevation: 5,
     },
     tabButton: {
@@ -277,20 +329,15 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginHorizontal: 5,
-        // Shadow for iOS
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
-        // Elevation for Android
         elevation: 3,
-        // Optionally add a subtle transition via Animated (if you're wrapping these in Animated.View)
     },
     activeTab: {
         backgroundColor: '#007aff',
-        // Scale up active button slightly (if using Animated you can animate this property)
         transform: [{ scale: 1.1 }],
-        // Enhanced shadow on active
         shadowColor: '#007aff',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.5,
@@ -301,7 +348,7 @@ export const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '600',
         fontSize: 14,
-        transition: 'color 0.2s', // Note: For React Native web; on native use Animated.Text instead
+        transition: 'color 0.2s',
     },
     activeTabText: {
         color: '#fff',
@@ -311,16 +358,15 @@ export const styles = StyleSheet.create({
     sectionHeader: {
         fontSize: 16,
         fontWeight: 'bold',
-        backgroundColor: '#000',       // black background
-        color: '#fff',                 // white text
+        backgroundColor: '#000',
+        color: '#fff',
         paddingVertical: 8,
         paddingHorizontal: 16,
         marginTop: 15,
         marginBottom: 3,
-        marginHorizontal: 0,          // gives a more refined, inset look
-        borderRadius: 8,               // rounded corners
-        textAlign: 'center',           // center the text
-        // Adding a subtle shadow for depth (works on both iOS and Android)
+        marginHorizontal: 0,
+        borderRadius: 8,
+        textAlign: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
@@ -330,11 +376,6 @@ export const styles = StyleSheet.create({
     calendarContainer: {
         flex: 1,
         marginBottom: 60,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginVertical: 10,
     },
     timePickerContainer: {
         flexDirection: 'row',
