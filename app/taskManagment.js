@@ -136,6 +136,81 @@ const formatTaskDate = (dateString) => {
     return `${month}/${day} - ${weekday}`;
 };
 
+//
+// --- NEW: Conflict logic that enumerates conflicting tasks ---
+//
+
+// 1) A helper to see if two dates are on the same UTC day
+const isSameUTCDate = (date1, date2) => {
+    return (
+        date1.getUTCFullYear() === date2.getUTCFullYear() &&
+        date1.getUTCMonth() === date2.getUTCMonth() &&
+        date1.getUTCDate() === date2.getUTCDate()
+    );
+};
+
+// 2) Convert a duration "HH:MM" into total milliseconds
+const durationToMilliseconds = (duration) => {
+    if (duration === 'DEFAULT') duration = '00:00';
+    const [h, m] = duration.split(':').map(Number);
+    return (h * 60 + m) * 60 * 1000;
+};
+
+// 3) Gather an array of all existing tasks that conflict with the new one
+const getConflictingTasks = (newStart, duration, existingTasks) => {
+    const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
+    const conflicts = [];
+
+    for (const task of existingTasks) {
+        const taskStart = new Date(task.date);
+        // Only compare if same day
+        if (!isSameUTCDate(newStart, taskStart)) continue;
+
+        const taskDuration = task.time;
+        const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
+
+        // Overlaps if newStart < existingTaskEnd AND existingTaskStart <= newEnd
+        if (newStart < taskEnd && taskStart <= newEnd) {
+            conflicts.push(task);
+        }
+    }
+    return conflicts;
+};
+
+// 4) Show an Alert listing the new task time range plus each conflict’s time range
+const showConflictsAlert = (newTask, conflicts) => {
+    // Format the new task’s timeframe
+    const newTaskStartTime = formatTaskTime(newTask.date);
+    const newTaskEndTime = calculateEndTime(newTask.date, newTask.time);
+
+    // Build a bullet list of conflict info
+    let conflictItems = '';
+    conflicts.forEach(conf => {
+        const conflictStartTime = formatTaskTime(conf.date);
+        const conflictEndTime = calculateEndTime(conf.date, conf.time);
+        conflictItems += `• "${conf.text}" (${conflictStartTime}–${conflictEndTime})\n`;
+    });
+
+    // Construct the final message
+    const fullMessage =
+        `Your new task "${newTask.text}" (${newTaskStartTime}–${newTaskEndTime}) overlaps with:\n\n` +
+        conflictItems +
+        '\nDo you want to schedule it anyway?';
+
+    // Return a Promise so we can `await` the user’s decision
+    return new Promise((resolve) => {
+        Alert.alert(
+            'Time Conflict Detected',
+            fullMessage,
+            [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Align Anyway', onPress: () => resolve(true) },
+            ],
+            { cancelable: false }
+        );
+    });
+};
+
 export default function CalendarScreen() {
     const router = useRouter();
     const [token, setToken] = useState(null);
@@ -166,7 +241,7 @@ export default function CalendarScreen() {
     // Fetch tasks once on mount (or whenever this screen is pushed)
     useFocusEffect(
         React.useCallback(() => {
-            const loadTokenAndTasks = async () => {
+            const loadData = async () => {
                 const storedToken = await AsyncStorage.getItem('token');
                 if (storedToken) {
                     setToken(storedToken);
@@ -175,10 +250,21 @@ export default function CalendarScreen() {
                         setTasks(tasksFromApi);
                     }
                 }
+
+                // ✅ Also check if manualTask was passed via paper import
+                const stored = await AsyncStorage.getItem('manualTask');
+                if (stored) {
+                    const manualTask = JSON.parse(stored);
+                    setCurrentTask(manualTask);
+                    setShowCategoryModal(true);
+                    await AsyncStorage.removeItem('manualTask');
+                }
             };
-            loadTokenAndTasks();
+
+            loadData();
         }, [])
     );
+
 
     const getLocalDateKey = (dateStr) => {
         return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'UTC' });
@@ -194,9 +280,11 @@ export default function CalendarScreen() {
         const newTaskDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 0));
 
         if (category === 'MANUAL') {
+            // If the parse says "MANUAL," we ask user to pick a category
             setCurrentTask({ text: taskInput, date: newTaskDate.toISOString() });
             setShowCategoryModal(true);
         } else {
+            // Build the new Task
             const newTask = {
                 text: taskInput,
                 category,
@@ -204,14 +292,14 @@ export default function CalendarScreen() {
                 date: newTaskDate.toISOString(),
             };
 
-            const newTaskStart = new Date(newTask.date);
-            const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
-
-            if (conflict) {
-                const proceed = await confirmConflict();
-                if (!proceed) return;
+            // Check for conflicts
+            const conflicts = getConflictingTasks(new Date(newTask.date), newTask.time, tasks);
+            if (conflicts.length > 0) {
+                const proceed = await showConflictsAlert(newTask, conflicts);
+                if (!proceed) return; // user canceled
             }
 
+            // If proceed or no conflict
             const result = await addTask(newTask, token);
             if (result._id) {
                 setTasks((prev) => [...prev, result]);
@@ -259,7 +347,7 @@ export default function CalendarScreen() {
             const taskDuration = task.time;
             const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
 
-            if (newStart < taskEnd && taskStart < newEnd) {
+            if (newStart < taskEnd && taskStart <= newEnd) {
                 return true;
             }
         }
@@ -276,11 +364,10 @@ export default function CalendarScreen() {
             date: currentTask.date,
         };
 
-        const newTaskStart = new Date(newTask.date);
-        const conflict = checkTimeConflict(newTaskStart, newTask.time, tasks);
-
-        if (conflict) {
-            const proceed = await confirmConflict();
+        // Check conflicts
+        const conflicts = getConflictingTasks(new Date(newTask.date), newTask.time, tasks);
+        if (conflicts.length > 0) {
+            const proceed = await showConflictsAlert(newTask, conflicts);
             if (!proceed) {
                 setShowCategoryModal(false);
                 setCurrentTask(null);
@@ -288,6 +375,7 @@ export default function CalendarScreen() {
             }
         }
 
+        // Add if user agrees or no conflict
         const result = await addTask(newTask, token);
         if (result._id) {
             setTasks((prev) => [...prev, result]);
@@ -359,18 +447,21 @@ export default function CalendarScreen() {
         };
 
         try {
+            // We exclude the current task from the conflict check
             const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
-            const conflict = checkTimeConflict(
+
+            // See if it conflicts
+            const conflicts = getConflictingTasks(
                 new Date(updatedTask.date),
                 updatedTask.time,
                 otherTasks
             );
-
-            if (conflict) {
-                const proceed = await confirmConflict();
+            if (conflicts.length > 0) {
+                const proceed = await showConflictsAlert(updatedTask, conflicts);
                 if (!proceed) return;
             }
 
+            // If no conflict or user proceeds
             const result = await updateTask(taskToEdit._id, updatedTask, token);
             if (result._id) {
                 setTasks(prevTasks =>
@@ -426,11 +517,12 @@ export default function CalendarScreen() {
         }, {});
     };
 
-    // Helper: Convert HH:MM to minutes
+    // For converting HH:MM to total minutes
     const timeToMinutes = (timeStr) => {
         const [h, m] = timeStr.split(':').map(Number);
         return h * 60 + m;
     };
+
 
     // Feedback handling
     const handleFeedback = (item) => {
