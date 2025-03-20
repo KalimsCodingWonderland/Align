@@ -17,25 +17,31 @@ router.post('/', authMiddleware, async (req, res) => {
         let predicted = false;
         // If duration is the default "30 min", use ML prediction
         if (time === "00:30" || time === "30 min") {
-            try {
-                const mlResponse = await fetch('https://alignml.onrender.com/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: req.user._id, category }),
-                });
-                const mlData = await mlResponse.json();
-                if (mlData && mlData.predicted_duration) {
-                    let minutes = mlData.predicted_duration;
-                    let hrs = Math.floor(minutes / 60);
-                    let mins = minutes % 60;
-                    time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-                    predicted = true;
-                } else {
+            // Count tasks for this category for the current user
+            const count = await Task.countDocuments({ user: req.user._id, category });
+            if (count < 5) {
+                time = "00:30";
+            } else {
+                try {
+                    const mlResponse = await fetch('https://alignml.onrender.com/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: req.user._id, category }),
+                    });
+                    const mlData = await mlResponse.json();
+                    if (mlData && mlData.predicted_duration) {
+                        let minutes = mlData.predicted_duration;
+                        let hrs = Math.floor(minutes / 60);
+                        let mins = minutes % 60;
+                        time = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                        predicted = true;
+                    } else {
+                        time = "00:30";
+                    }
+                } catch (err) {
+                    console.error('ML prediction error:', err);
                     time = "00:30";
                 }
-            } catch (err) {
-                console.error('ML prediction error:', err);
-                time = "00:30";
             }
         }
         const newTask = new Task({
