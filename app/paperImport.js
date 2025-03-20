@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const normalizeDuration = (durationStr) => {
-    if (!durationStr) return '00:00';
+    if (!durationStr || durationStr.toUpperCase() === 'DEFAULT') return 'DEFAULT';
     if (durationStr.includes(':')) {
         const [h, m] = durationStr.split(':');
         return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
@@ -88,7 +88,7 @@ export default function PaperImportScreen() {
 // Normalize duration
                         let normalizedDuration = normalizeDuration(details.duration);
                         if (normalizedDuration === "00:00") {
-                            normalizedDuration = undefined; // Let backend ML handle it
+                            normalizedDuration = "DEFAULT";
                         }
 
                         const newTask = {
