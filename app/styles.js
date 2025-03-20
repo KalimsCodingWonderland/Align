@@ -115,6 +115,28 @@ export const styles = StyleSheet.create({
         marginBottom: 15,
         textAlign: 'center',
     },
+    daysContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginVertical: 10,
+    },
+    dayButton: {
+        padding: 10,
+        margin: 4,
+        borderRadius: 8,
+        backgroundColor: '#eee',
+    },
+    selectedDay: {
+        backgroundColor: '#007AFF',
+    },
+    recurrenceOptions: {
+        marginVertical: 15,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+    },
     feedbackTriggerButton: {
         backgroundColor: '#007aff',
         paddingVertical: 10,
