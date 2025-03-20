@@ -103,6 +103,7 @@ const formatDuration = (durationStr) => {
 };
 
 const calculateEndTime = (startDate, duration) => {
+    if (duration === 'DEFAULT') duration = '00:30';
     const [hours, minutes] = duration.split(':').map(Number);
     const endTime = new Date(startDate);
     endTime.setUTCHours(endTime.getUTCHours() + hours);
@@ -244,6 +245,7 @@ export default function CalendarScreen() {
     };
 
     const durationToMilliseconds = (duration) => {
+        if (duration === 'DEFAULT') duration = '00:30';
         const [hours, minutes] = duration.split(':').map(Number);
         return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
     };
@@ -266,7 +268,7 @@ export default function CalendarScreen() {
 
     const handleManualCategory = async (selectedCategory) => {
         const timeMatch = currentTask.text.match(/(\d+)\s*(min|minutes|hour|hours)/i);
-        const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : '00:30';
+        const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : 'DEFAULT';
         const newTask = {
             text: currentTask.text,
             category: selectedCategory,
