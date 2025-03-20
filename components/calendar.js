@@ -4,6 +4,7 @@ import React from 'react';
 import { View, FlatList } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { styles } from '../app/styles';
+import {generateRecurringTasks} from "../constants/recurrence";
 
 const CalendarViewTab = ({
                              getMarkedDates,

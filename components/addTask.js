@@ -4,6 +4,7 @@ import { TextInput, FlatList, TouchableOpacity, Text, View } from 'react-native'
 import { styles } from '../app/styles';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import {generateRecurringTasks} from "../constants/recurrence";
 
 const AddTaskTab = ({
                         taskInput,

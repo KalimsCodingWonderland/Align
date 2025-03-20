@@ -10,7 +10,7 @@ const router = express.Router();
 // Create a new task with ML prediction if duration is default "30 min"
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        let { text, category, time, date } = req.body;
+        let { text, category, time, date, recurrence } = req.body;
         if (!text || !category || !time || !date) {
             return res.status(400).json({ error: 'Missing task fields' });
         }
@@ -51,6 +51,15 @@ router.post('/', authMiddleware, async (req, res) => {
             time,
             date,
             predicted,
+            recurrence: recurrence.type !== 'none' ? {
+                type: recurrence.type,
+                daysOfWeek: recurrence.daysOfWeek || [],
+                interval: recurrence.interval || 1,
+                endType: recurrence.endType || 'never',
+                endDate: recurrence.endDate || null,
+                occurrences: recurrence.occurrences || null
+            } : null,
+            isRecurring: recurrence.type !== 'none'
         });
         const savedTask = await newTask.save();
         res.json(savedTask);
