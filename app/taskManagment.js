@@ -22,6 +22,7 @@ import { Animated } from 'react-native';
 import AddTaskTab from '../components/addTask';
 import ListViewTab from '../components/listView';
 import CalendarViewTab from '../components/calendar';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { styles, getCategoryColor } from './styles';
 import {
     categorizeTask,
@@ -299,6 +300,7 @@ export default function CalendarScreen() {
                 category,
                 time: normalizeDuration(duration),
                 date: newTaskDate.toISOString(),
+                recurrence: recurrenceType,
             };
 
             // Check for conflicts
@@ -371,6 +373,15 @@ export default function CalendarScreen() {
             category: selectedCategory,
             time: estimatedTime,
             date: currentTask.date,
+            recurrence: recurrence.type !== 'none' ? {
+                type: recurrence.type,
+                daysOfWeek: recurrence.daysOfWeek || [],
+                interval: recurrence.interval || 1,
+                endType: recurrence.endType || 'never',
+                endDate: recurrence.endDate || null,
+                occurrences: recurrence.occurrences || null
+            } : null,
+            isRecurring: recurrence.type !== 'none'
         };
 
         // Check conflicts
@@ -793,82 +804,108 @@ export default function CalendarScreen() {
                                 onChangeText={setEditTaskInput}
                                 placeholder="Edit your task text here"
                             />
-                            <Text style={styles.label}>Category</Text>
+
                             {/* Recurrence Settings */}
-                            <Text style={styles.label}>Recurrence Pattern</Text>
-                            <Picker
-                                selectedValue={recurrenceType}
-                                onValueChange={setRecurrenceType}
-                                style={styles.input}>
-                                <Picker.Item label="No Recurrence" value="none" />
-                                <Picker.Item label="Daily" value="daily" />
-                                <Picker.Item label="Weekly" value="weekly" />
-                                <Picker.Item label="Monthly" value="monthly" />
-                                <Picker.Item label="Yearly" value="yearly" />
-                                <Picker.Item label="Custom Days" value="custom" />
-                            </Picker>
+                            <View style={styles.recurrenceContainer}>
+                                <Text style={styles.sectionTitle}>Recurrence Settings</Text>
 
-                            {recurrenceType === 'weekly' || recurrenceType === 'custom' ? (
-                                <View style={styles.recurrenceDaysContainer}>
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                                        <TouchableOpacity
-                                            key={day}
-                                            style={[
-                                                styles.dayButton,
-                                                recurrenceDays.includes(index) && styles.selectedDay
-                                            ]}
-                                            onPress={() => {
-                                                const updatedDays = [...recurrenceDays];
-                                                const dayIndex = updatedDays.indexOf(index);
-                                                if (dayIndex === -1) {
-                                                    updatedDays.push(index);
-                                                } else {
-                                                    updatedDays.splice(dayIndex, 1);
-                                                }
-                                                setRecurrenceDays(updatedDays);
-                                            }}>
-                                            <Text style={styles.dayText}>{day}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Recurrence Pattern</Text>
+                                    <View style={styles.pickerWrapper}>
+                                        <Picker
+                                            selectedValue={recurrenceType}
+                                            onValueChange={setRecurrenceType}
+                                            style={styles.picker}
+                                            mode="dropdown"
+                                        >
+                                            <Picker.Item label="No Recurrence" value="none" />
+                                            <Picker.Item label="Daily" value="daily" />
+                                            <Picker.Item label="Weekly" value="weekly" />
+                                            <Picker.Item label="Monthly" value="monthly" />
+                                            <Picker.Item label="Yearly" value="yearly" />
+                                            <Picker.Item label="Custom Days" value="custom" />
+                                        </Picker>
+                                    </View>
                                 </View>
-                            ) : null}
 
-                            <Text style={styles.label}>Repeat Every:</Text>
-                            <TextInput
-                                style={styles.input}
-                                keyboardType="numeric"
-                                value={String(recurrenceInterval)}
-                                onChangeText={text => setRecurrenceInterval(Number(text) || 1)}
-                            />
+                                {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
+                                    <View style={styles.formGroup}>
+                                        <Text style={styles.label}>Repeat Days</Text>
+                                        <View style={styles.daysGrid}>
+                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                                <TouchableOpacity
+                                                    key={day}
+                                                    style={[
+                                                        styles.dayButton,
+                                                        recurrenceDays.includes(index) && styles.selectedDay
+                                                    ]}
+                                                    onPress={() => {
+                                                        const updatedDays = [...recurrenceDays];
+                                                        const dayIndex = updatedDays.indexOf(index);
+                                                        if (dayIndex === -1) {
+                                                            updatedDays.push(index);
+                                                        } else {
+                                                            updatedDays.splice(dayIndex, 1);
+                                                        }
+                                                        setRecurrenceDays(updatedDays);
+                                                    }}>
+                                                    <Text style={styles.dayText}>{day}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
 
-                            <Text style={styles.label}>Ends:</Text>
-                            <Picker
-                                selectedValue={recurrenceEndType}
-                                onValueChange={setRecurrenceEndType}
-                                style={styles.input}>
-                                <Picker.Item label="Never" value="never" />
-                                <Picker.Item label="On Date" value="date" />
-                                <Picker.Item label="After Occurrences" value="count" />
-                            </Picker>
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Repeat Every</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={String(recurrenceInterval)}
+                                        onChangeText={text => setRecurrenceInterval(Number(text) || 1)}
+                                    />
+                                </View>
 
-                            {recurrenceEndType === 'date' && (
-                                <DateTimePicker
-                                    value={recurrenceEndDate || new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, date) => setRecurrenceEndDate(date)}
-                                />
-                            )}
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Ends</Text>
+                                    <View style={styles.pickerWrapper}>
+                                        <Picker
+                                            selectedValue={recurrenceEndType}
+                                            onValueChange={setRecurrenceEndType}
+                                            style={styles.picker}>
+                                            <Picker.Item label="Never" value="never" />
+                                            <Picker.Item label="On Date" value="date" />
+                                            <Picker.Item label="After Occurrences" value="count" />
+                                        </Picker>
+                                    </View>
+                                </View>
 
-                            {recurrenceEndType === 'count' && (
-                                <TextInput
-                                    style={styles.input}
-                                    keyboardType="numeric"
-                                    placeholder="Number of occurrences"
-                                    value={String(recurrenceOccurrences)}
-                                    onChangeText={text => setRecurrenceOccurrences(Number(text))}
-                                />
-                            )}
+                                {recurrenceEndType === 'date' && (
+                                    <View style={styles.formGroup}>
+                                        <DateTimePicker
+                                            value={recurrenceEndDate || new Date()}
+                                            mode="date"
+                                            display="default"
+                                            onChange={(event, date) => setRecurrenceEndDate(date)}
+                                        />
+                                    </View>
+                                )}
+
+                                {recurrenceEndType === 'count' && (
+                                    <View style={styles.formGroup}>
+                                        <TextInput
+                                            style={styles.input}
+                                            keyboardType="numeric"
+                                            placeholder="Number of occurrences"
+                                            value={String(recurrenceOccurrences)}
+                                            onChangeText={text => setRecurrenceOccurrences(Number(text))}
+                                        />
+                                    </View>
+                                )}
+                            </View>
+
+                            <Text style={styles.label}>Category</Text>
+
                             <Picker
                                 selectedValue={editCategory}
                                 onValueChange={(itemValue) => setEditCategory(itemValue)}
