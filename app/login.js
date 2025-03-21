@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { loginUser } from '../constants/api';
 import AnimatedInput from '../components/AnimatedInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const AnimatedButton = ({ title, onPress, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
@@ -42,6 +43,8 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const [secureTextEntry, setSecureTextEntry] = useState(true);
+    const passwordRef = useRef(null); // Create a ref for the AnimatedInput
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -68,6 +71,11 @@ export default function LoginScreen() {
         }
     };
 
+    const togglePasswordVisibility = () => {
+        setSecureTextEntry(!secureTextEntry);
+        //if you have any other complex logic inside animated input, make sure to handle the secureTextEntry change correctly inside that component.
+    };
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -76,12 +84,29 @@ export default function LoginScreen() {
                 </TouchableOpacity>
                 <Text style={styles.title}>🔑 Login</Text>
                 <AnimatedInput placeholder="Email" value={email} onChangeText={setEmail} />
-                <AnimatedInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+                <View style={styles.passwordContainer}>
+                    <AnimatedInput
+                        ref={passwordRef} // Assign the ref
+                        placeholder="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={secureTextEntry}
+                        style={styles.passwordInput}
+                    />
+                    <TouchableOpacity style={styles.eyeButton} onPress={togglePasswordVisibility}>
+                        <Ionicons
+                            name={secureTextEntry ? 'eye-off' : 'eye'}
+                            size={24}
+                            color="gray"
+                        />
+                    </TouchableOpacity>
+                </View>
                 <AnimatedButton title="Login" onPress={handleLogin} style={styles.button} />
             </Animated.View>
         </TouchableWithoutFeedback>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -123,5 +148,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 10,
+    },
+    passwordInput: {
+        flex: 1,
+    },
+    eyeButton: {
+        padding: 0,
+        marginLeft: -20,
     },
 });
