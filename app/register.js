@@ -5,6 +5,7 @@ import { View, Text, Alert, Animated, StyleSheet, TouchableOpacity, TouchableWit
 import { useRouter } from 'expo-router';
 import { registerUser } from '../constants/api';
 import AnimatedInput from '../components/AnimatedInput';
+import { Ionicons } from '@expo/vector-icons';
 
 const AnimatedButton = ({ title, onPress, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
@@ -42,6 +43,7 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const [secureTextEntry, setSecureTextEntry] = useState(true);
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -61,6 +63,10 @@ export default function RegisterScreen() {
         }
     };
 
+    const togglePasswordVisibility = () => {
+        setSecureTextEntry(!secureTextEntry);
+    };
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -70,7 +76,22 @@ export default function RegisterScreen() {
                 <Text style={styles.title}>📝 Register</Text>
                 <AnimatedInput placeholder="Username" value={username} onChangeText={setUsername} />
                 <AnimatedInput placeholder="Email" value={email} onChangeText={setEmail} />
-                <AnimatedInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+                <View style={styles.passwordContainer}>
+                    <AnimatedInput
+                        placeholder="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={secureTextEntry}
+                        style={styles.passwordInput}
+                    />
+                    <TouchableOpacity style={styles.eyeButton} onPress={togglePasswordVisibility}>
+                        <Ionicons
+                            name={secureTextEntry ? 'eye-off' : 'eye'}
+                            size={24}
+                            color="gray"
+                        />
+                    </TouchableOpacity>
+                </View>
                 <AnimatedButton title="Register" onPress={handleRegister} style={styles.button} />
             </Animated.View>
         </TouchableWithoutFeedback>
@@ -117,5 +138,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 10,
+    },
+    passwordInput: {
+        flex: 1,
+    },
+    eyeButton: {
+        padding: 0,
+        marginLeft: -20,
     },
 });
