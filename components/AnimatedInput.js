@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { View, TextInput, Animated, StyleSheet } from 'react-native';
 
-const AnimatedInput = ({ placeholder, value, onChangeText, secureTextEntry }) => {
+const AnimatedInput = forwardRef(({ placeholder, value, onChangeText, secureTextEntry }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
     const animatedIsFocused = useRef(new Animated.Value(value === '' ? 0 : 1)).current;
 
@@ -34,6 +34,7 @@ const AnimatedInput = ({ placeholder, value, onChangeText, secureTextEntry }) =>
         <View style={styles.container}>
             <Animated.Text style={labelStyle}>{placeholder}</Animated.Text>
             <TextInput
+                ref={ref} // Forward the ref to the TextInput
                 value={value}
                 onChangeText={onChangeText}
                 style={styles.input}
@@ -43,7 +44,7 @@ const AnimatedInput = ({ placeholder, value, onChangeText, secureTextEntry }) =>
             />
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {
