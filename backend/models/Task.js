@@ -12,7 +12,7 @@ const TaskSchema = new mongoose.Schema({
     recurrence: {
         type: {
             type: String,
-            enum: ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'],
+            enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
             default: 'none'
         },
         daysOfWeek: [{
@@ -34,6 +34,5 @@ const TaskSchema = new mongoose.Schema({
     originalTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
     isRecurring: Boolean
 });
-
 
 module.exports = mongoose.model('Task', TaskSchema);

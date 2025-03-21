@@ -12,18 +12,18 @@ import {
     SectionList,
     ScrollView,
     Alert,
+    Animated,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
-import { Animated } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { styles, getCategoryColor } from './styles';
 import AddTaskTab from '../components/addTask';
 import ListViewTab from '../components/listView';
 import CalendarViewTab from '../components/calendar';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { styles, getCategoryColor } from './styles';
 import {
     categorizeTask,
     parseTaskDetails,
@@ -32,7 +32,7 @@ import {
     updateTask,
     deleteTask,
 } from '../constants/api';
-import {generateRecurringTasks} from "../constants/recurrence";
+import { generateRecurringTasks } from '../constants/recurrence';
 
 const categories = [
     'STUDY',
@@ -240,13 +240,26 @@ export default function CalendarScreen() {
     const [awaitingCorrection, setAwaitingCorrection] = useState(false);
     const [correctedDuration, setCorrectedDuration] = useState("");
 
-    // State for recurrence modal
+    // State for recurrence
     const [recurrenceType, setRecurrenceType] = useState('none');
     const [recurrenceDays, setRecurrenceDays] = useState([]);
-    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+    const [recurrenceInterval, setRecurrenceInterval] = useState(null);
     const [recurrenceEndType, setRecurrenceEndType] = useState('never');
-    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
-    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(1);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
+    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(null);
+
+    // -------------------------------
+    // NEW STATE FOR PICKER MODALS
+    // -------------------------------
+    const [showRecurrenceTypePicker, setShowRecurrenceTypePicker] = useState(false);
+    const [showRecurrenceEndTypePicker, setShowRecurrenceEndTypePicker] = useState(false);
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+    const [showStartHourPicker, setShowStartHourPicker] = useState(false);
+    const [showStartMinutePicker, setShowStartMinutePicker] = useState(false);
+    const [showStartAmPmPicker, setShowStartAmPmPicker] = useState(false);
+    const [showCompletionHourPicker, setShowCompletionHourPicker] = useState(false);
+    const [showCompletionMinutePicker, setShowCompletionMinutePicker] = useState(false);
+    // -------------------------------
 
     // Fetch tasks once on mount (or whenever this screen is pushed)
     useFocusEffect(
@@ -274,7 +287,6 @@ export default function CalendarScreen() {
             loadData();
         }, [])
     );
-
 
     const getLocalDateKey = (dateStr) => {
         return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'UTC' });
@@ -335,23 +347,12 @@ export default function CalendarScreen() {
         });
     };
 
-    const isSameUTCDate = (date1, date2) => {
-        return (
-            date1.getUTCFullYear() === date2.getUTCFullYear() &&
-            date1.getUTCMonth() === date2.getUTCMonth() &&
-            date1.getUTCDate() === date2.getUTCDate()
-        );
-    };
-
-    const durationToMilliseconds = (duration) => {
-        if (duration === 'DEFAULT') duration = 'DEFAULT';
-        const [hours, minutes] = duration.split(':').map(Number);
-        return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
-    };
-
+    // app/taskManagement.js - Update conflict checking
     const checkTimeConflict = (newStart, duration, existingTasks) => {
+        const expandedTasks = existingTasks.flatMap(t => generateRecurringTasks(t));
         const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
-        for (const task of existingTasks) {
+
+        for (const task of expandedTasks) {
             const taskStart = new Date(task.date);
             if (!isSameUTCDate(newStart, taskStart)) continue;
 
@@ -415,7 +416,7 @@ export default function CalendarScreen() {
         setRecurrenceDays(task.recurrence?.daysOfWeek || []);
         setRecurrenceInterval(task.recurrence?.interval || 1);
         setRecurrenceEndType(task.recurrence?.endType || 'never');
-        setRecurrenceEndDate(task.recurrence?.endDate ? new Date(task.recurrence.endDate) : '');
+        setRecurrenceEndDate(task.recurrence?.endDate ? new Date(task.recurrence.endDate) : null);
         setRecurrenceOccurrences(task.recurrence?.occurrences || 1);
 
         const taskDate = new Date(task.date);
@@ -464,6 +465,7 @@ export default function CalendarScreen() {
             0
         ));
 
+        // app/taskManagement.js - In saveEditedTask
         const updatedTask = {
             ...taskToEdit,
             text: editTaskInput,
@@ -472,15 +474,13 @@ export default function CalendarScreen() {
             time: `${editCompletionHour.padStart(2, '0')}:${editCompletionMinute.padStart(2, '0')}`,
             recurrence: recurrenceType !== 'none' ? {
                 type: recurrenceType,
-                daysOfWeek: recurrenceDays,
+                daysOfWeek: recurrenceType === 'weekly' || recurrenceType === 'custom' ? recurrenceDays : [],
                 interval: recurrenceInterval,
                 endType: recurrenceEndType,
-                endDate: recurrenceEndType === 'date' ? recurrenceEndDate : null,
+                endDate: recurrenceEndType === 'date' ? recurrenceEndDate.toISOString() : null,
                 occurrences: recurrenceEndType === 'count' ? recurrenceOccurrences : null
-            } : null,
-            isRecurring: recurrenceType !== 'none'
+            } : null
         };
-
 
         try {
             // We exclude the current task from the conflict check
@@ -548,11 +548,55 @@ export default function CalendarScreen() {
     };
 
     const getMarkedDates = () => {
-        return tasks.reduce((acc, task) => {
-            const date = getLocalDateKey(task.date);
-            acc[date] = { marked: true };
+        const todayKey = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+        const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
+
+        const markedDates = expandedTasks.reduce((acc, task) => {
+            const dateKey = getLocalDateKey(task.date);
+            acc[dateKey] = {
+                marked: true,
+                dotColor: '#000000', // Blue dot for tasks
+            };
             return acc;
         }, {});
+
+        // Ensure today is highlighted
+        markedDates[todayKey] = {
+            ...markedDates[todayKey], // Preserve any existing markings
+            customStyles: {
+                container: {
+                    borderColor: '#ff6347', // Red border for today
+                    borderWidth: 2,
+                    borderRadius: 15,
+                    backgroundColor: 'transparent',
+                },
+                text: {
+                    color: '#ff6347',
+                    fontWeight: 'bold',
+                },
+            },
+        };
+
+        // Ensure selected date is highlighted
+        if (selectedDate) {
+            markedDates[selectedDate] = {
+                ...markedDates[selectedDate], // Preserve any existing markings
+                customStyles: {
+                    container: {
+                        borderColor: '#007aff', // Blue border for selected date
+                        borderWidth: 2,
+                        borderRadius: 15,
+                        backgroundColor: 'transparent',
+                    },
+                    text: {
+                        color: '#007aff',
+                        fontWeight: 'bold',
+                    },
+                },
+            };
+        }
+
+        return markedDates;
     };
 
     // For converting HH:MM to total minutes
@@ -560,7 +604,6 @@ export default function CalendarScreen() {
         const [h, m] = timeStr.split(':').map(Number);
         return h * 60 + m;
     };
-
 
     // Feedback handling
     const handleFeedback = (item) => {
@@ -618,7 +661,7 @@ export default function CalendarScreen() {
         setFeedbackTask(null);
     };
 
-    const renderTaskItem = ({ item, index, showFullDate }) => (
+    const renderTaskItem = ({ item }) => (
         <TouchableOpacity onPress={() => handleEditTask(item)}>
             <View style={styles.taskItem}>
                 <Text style={styles.taskText}>{item.text}</Text>
@@ -631,10 +674,17 @@ export default function CalendarScreen() {
                     </Text>
                 </View>
                 <View style={styles.taskDetails}>
-                    <Text style={[styles.categoryLabel, { backgroundColor: getCategoryColor(item.category) }]}>
+                    <Text
+                        style={[
+                            styles.categoryLabel,
+                            { backgroundColor: getCategoryColor(item.category) }
+                        ]}
+                    >
                         {item.category.toLowerCase()}
                     </Text>
-                    <Text style={styles.timeText}>⏱ {formatDuration(item.completionTime || item.time)}</Text>
+                    <Text style={styles.timeText}>
+                        ⏱ {formatDuration(item.completionTime || item.time)}
+                    </Text>
                     {item.predicted && (
                         <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 Predicted</Text>
                     )}
@@ -676,7 +726,7 @@ export default function CalendarScreen() {
                         getMarkedDates={getMarkedDates}
                         setSelectedDate={setSelectedDate}
                         selectedDate={selectedDate}
-                        tasks={tasks}
+                        tasks={tasks.flatMap(task => generateRecurringTasks(task))}  // Pass expanded tasks
                         renderTaskItem={renderTaskItem}
                         getLocalDateKey={getLocalDateKey}
                     />
@@ -704,12 +754,12 @@ export default function CalendarScreen() {
                         <>
                             <Text style={styles.feedbackModalTitle}>ALIGN AI</Text>
                             <Text style={styles.feedbackInfoText}>
-                                {`The predicted duration is: \n ${
+                                {`The predicted duration is: ${
                                     (() => {
                                         const [h, m] = feedbackTask.time.split(':').map(Number);
-                                        return (h ? `${h} hour${h > 1 ? 's' : ''}` : '')
-                                            + (h && m ? ' ' : '')
-                                            + (m ? `${m} minute${m > 1 ? 's' : ''}` : '');
+                                        return (h ? `${h} hour${h > 1 ? 's' : ''}` : '') +
+                                            (h && m ? ' ' : '') +
+                                            (m ? `${m} minute${m > 1 ? 's' : ''}` : '');
                                     })()
                                 }`}
                             </Text>
@@ -809,14 +859,177 @@ export default function CalendarScreen() {
                             <View style={styles.recurrenceContainer}>
                                 <Text style={styles.sectionTitle}>Recurrence Settings</Text>
 
-                                <View style={styles.formGroup}>
-                                    <Text style={styles.label}>Recurrence Pattern</Text>
-                                    <View style={styles.pickerWrapper}>
+                                {/* Always show pattern selector */}
+                                <View style={styles.recurrenceRow}>
+                                    <TouchableOpacity
+                                        style={styles.selectionButton}
+                                        onPress={() => setShowRecurrenceTypePicker(true)}
+                                    >
+                                        <Text style={styles.selectionButtonText}>
+                                            {recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                                        </Text>
+                                        <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                    </TouchableOpacity>
+
+                                    {/* Only show frequency input when recurrence is active */}
+                                    {recurrenceType !== 'none' && (
+                                        <TextInput
+                                            style={styles.recurrenceInput}
+                                            keyboardType="numeric"
+                                            value={recurrenceInterval ? String(recurrenceInterval) : ""}
+                                            onChangeText={t => {
+                                                const value = parseInt(t) || 0;
+                                                setRecurrenceInterval(value);
+                                            }}
+                                            placeholder={
+                                                `Ex. Every # ${{
+                                                    daily: 'days',
+                                                    weekly: 'weeks',
+                                                    monthly: 'months',
+                                                    yearly: 'years',
+                                                    custom: 'days'
+                                                }[recurrenceType]}`
+                                            }
+                                            placeholderTextColor="#8e8e93"
+                                        />
+                                    )}
+                                </View>
+
+                                {/* Only show other recurrence controls when recurrence is active */}
+                                {recurrenceType !== 'none' && (
+                                    <>
+                                        {/* End Condition */}
+                                        <TouchableOpacity
+                                            style={styles.selectionButton}
+                                            onPress={() => setShowRecurrenceEndTypePicker(true)}
+                                        >
+                                            <Text style={styles.selectionButtonText}>
+                                                {recurrenceEndType === 'never' && 'Never Ends'}
+                                                {recurrenceEndType === 'date' && `Until ${recurrenceEndDate ? recurrenceEndDate.toDateString() : 'Select Date'}`}
+                                                {recurrenceEndType === 'count' && `After ${recurrenceOccurrences || '#'} occurrences`}
+                                            </Text>
+                                            <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                        </TouchableOpacity>
+
+                                        {recurrenceEndType === 'date' && (
+                                            <DateTimePicker
+                                                value={recurrenceEndDate || new Date()}
+                                                mode="date"
+                                                display="default"
+                                                onChange={(event, date) => {
+                                                    if (date) {
+                                                        setRecurrenceEndDate(date);
+                                                    }
+                                                }}
+                                            />
+                                        )}
+
+                                        {recurrenceEndType === 'count' && (
+                                            <TextInput
+                                                style={styles.input}
+                                                keyboardType="numeric"
+                                                placeholder="Number of recurrences"
+                                                value={recurrenceOccurrences ? String(recurrenceOccurrences) : ""}
+                                                onChangeText={t => {
+                                                    const num = parseInt(t);
+                                                    // Allow empty input but ensure minimum value is 1 when entered
+                                                    setRecurrenceOccurrences(t === "" ? null : Math.max(1, num || 1));
+                                                }}
+                                                placeholderTextColor="#8e8e93"
+                                            />
+                                        )}
+
+                                        {/* Repeat On Days */}
+                                        {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
+                                            <View style={styles.formGroup}>
+                                                <Text style={styles.label}>Repeat On Days</Text>
+                                                <View style={styles.daysGrid}>
+                                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                                        <TouchableOpacity
+                                                            key={day}
+                                                            style={[
+                                                                styles.dayButton,
+                                                                recurrenceDays.includes(index) && styles.selectedDay
+                                                            ]}
+                                                            onPress={() => {
+                                                                const updatedDays = [...recurrenceDays];
+                                                                const dayIndex = updatedDays.indexOf(index);
+                                                                if (dayIndex === -1) {
+                                                                    updatedDays.push(index);
+                                                                } else {
+                                                                    updatedDays.splice(dayIndex, 1);
+                                                                }
+                                                                setRecurrenceDays(updatedDays.sort((a, b) => a - b));
+                                                            }}
+                                                        >
+                                                            <Text style={[
+                                                                styles.dayText,
+                                                                recurrenceDays.includes(index) && styles.selectedDayText
+                                                            ]}>
+                                                                {day}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        )}
+                                    </>
+                                )}
+                            </View>
+
+                            <Text style={styles.label}>Category</Text>
+                            {/* Category Picker Trigger (Modal Dropdown) */}
+                            <TouchableOpacity
+                                style={styles.selectionButton}
+                                onPress={() => setShowCategoryPicker(true)}
+                            >
+                                <Text style={styles.selectionButtonText}>{editCategory}</Text>
+                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                            </TouchableOpacity>
+                            <Modal
+                                visible={showCategoryPicker}
+                                transparent
+                                animationType="slide"
+                            >
+                                <View style={styles.pickerModalOverlay}>
+                                    <View style={styles.pickerModalContent}>
+                                        <View style={styles.pickerHeader}>
+                                            <Text style={styles.pickerTitle}>Select Category</Text>
+                                            <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                                                <Text style={styles.pickerDoneButton}>Done</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <Picker
+                                            selectedValue={editCategory}
+                                            onValueChange={(itemValue) => setEditCategory(itemValue)}
+                                            style={{}}
+                                        >
+                                            {categories.map((cat) => (
+                                                <Picker.Item key={cat} label={cat} value={cat} />
+                                            ))}
+                                        </Picker>
+                                    </View>
+                                </View>
+                            </Modal>
+
+                            {/* Recurrence Type Picker Modal */}
+                            <Modal visible={showRecurrenceTypePicker} transparent animationType="slide">
+                                <View style={styles.pickerModalOverlay}>
+                                    <View style={styles.pickerModalContent}>
+                                        <View style={styles.pickerHeader}>
+                                            <Text style={styles.pickerTitle}>Repeat Pattern</Text>
+                                            <TouchableOpacity onPress={() => setShowRecurrenceTypePicker(false)}>
+                                                <Text style={styles.pickerDoneButton}>Done</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                         <Picker
                                             selectedValue={recurrenceType}
-                                            onValueChange={setRecurrenceType}
-                                            style={styles.picker}
-                                            mode="dropdown"
+                                            onValueChange={(value) => {
+                                                setRecurrenceType(value);
+                                                if (value !== 'weekly' && value !== 'custom') {
+                                                    setRecurrenceDays([]);
+                                                }
+                                            }}
                                         >
                                             <Picker.Item label="No Recurrence" value="none" />
                                             <Picker.Item label="Daily" value="daily" />
@@ -827,95 +1040,30 @@ export default function CalendarScreen() {
                                         </Picker>
                                     </View>
                                 </View>
+                            </Modal>
 
-                                {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
-                                    <View style={styles.formGroup}>
-                                        <Text style={styles.label}>Repeat Days</Text>
-                                        <View style={styles.daysGrid}>
-                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                                                <TouchableOpacity
-                                                    key={day}
-                                                    style={[
-                                                        styles.dayButton,
-                                                        recurrenceDays.includes(index) && styles.selectedDay
-                                                    ]}
-                                                    onPress={() => {
-                                                        const updatedDays = [...recurrenceDays];
-                                                        const dayIndex = updatedDays.indexOf(index);
-                                                        if (dayIndex === -1) {
-                                                            updatedDays.push(index);
-                                                        } else {
-                                                            updatedDays.splice(dayIndex, 1);
-                                                        }
-                                                        setRecurrenceDays(updatedDays);
-                                                    }}>
-                                                    <Text style={styles.dayText}>{day}</Text>
-                                                </TouchableOpacity>
-                                            ))}
+                            {/* End Type Picker Modal */}
+                            <Modal visible={showRecurrenceEndTypePicker} transparent animationType="slide">
+                                <View style={styles.pickerModalOverlay}>
+                                    <View style={styles.pickerModalContent}>
+                                        <View style={styles.pickerHeader}>
+                                            <Text style={styles.pickerTitle}>End Condition</Text>
+                                            <TouchableOpacity onPress={() => setShowRecurrenceEndTypePicker(false)}>
+                                                <Text style={styles.pickerDoneButton}>Done</Text>
+                                            </TouchableOpacity>
                                         </View>
-                                    </View>
-                                )}
-
-                                <View style={styles.formGroup}>
-                                    <Text style={styles.label}>Repeat Every</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        keyboardType="numeric"
-                                        value={String(recurrenceInterval)}
-                                        onChangeText={text => setRecurrenceInterval(Number(text) || 1)}
-                                    />
-                                </View>
-
-                                <View style={styles.formGroup}>
-                                    <Text style={styles.label}>Ends</Text>
-                                    <View style={styles.pickerWrapper}>
                                         <Picker
                                             selectedValue={recurrenceEndType}
                                             onValueChange={setRecurrenceEndType}
-                                            style={styles.picker}>
-                                            <Picker.Item label="Never" value="never" />
-                                            <Picker.Item label="On Date" value="date" />
-                                            <Picker.Item label="After Occurrences" value="count" />
+                                        >
+                                            <Picker.Item label="Never Ends" value="never" />
+                                            <Picker.Item label="Ends On Date" value="date" />
+                                            <Picker.Item label="Ends After Occurrences" value="count" />
                                         </Picker>
                                     </View>
                                 </View>
+                            </Modal>
 
-                                {recurrenceEndType === 'date' && (
-                                    <View style={styles.formGroup}>
-                                        <DateTimePicker
-                                            value={recurrenceEndDate || new Date()}
-                                            mode="date"
-                                            display="default"
-                                            onChange={(event, date) => setRecurrenceEndDate(date)}
-                                        />
-                                    </View>
-                                )}
-
-                                {recurrenceEndType === 'count' && (
-                                    <View style={styles.formGroup}>
-                                        <TextInput
-                                            style={styles.input}
-                                            keyboardType="numeric"
-                                            placeholder="Number of occurrences"
-                                            value={String(recurrenceOccurrences)}
-                                            onChangeText={text => setRecurrenceOccurrences(Number(text))}
-                                        />
-                                    </View>
-                                )}
-                            </View>
-
-                            <Text style={styles.label}>Category</Text>
-
-                            <Picker
-                                selectedValue={editCategory}
-                                onValueChange={(itemValue) => setEditCategory(itemValue)}
-                                style={{ height: 200, width: '100%' }}
-                                mode="dropdown"
-                            >
-                                {categories.map((cat) => (
-                                    <Picker.Item key={cat} label={cat} value={cat} />
-                                ))}
-                            </Picker>
                             <Text style={styles.label}>Select Date</Text>
                             <Calendar
                                 current={editDate}
@@ -929,7 +1077,9 @@ export default function CalendarScreen() {
                                     arrowColor: '#007aff',
                                 }}
                             />
+
                             <Text style={styles.label}>Scheduled Time</Text>
+                            {/* ORIGINAL INLINE Scheduled Time Pickers */}
                             <View style={styles.timePickerContainer}>
                                 <View style={styles.pickerColumn}>
                                     <Text style={styles.pickerLabel}>Hours</Text>
@@ -970,7 +1120,9 @@ export default function CalendarScreen() {
                                     </Picker>
                                 </View>
                             </View>
+
                             <Text style={styles.label}>Completion Time</Text>
+                            {/* ORIGINAL INLINE Completion Time Pickers */}
                             <View style={styles.timePickerContainer}>
                                 <View style={styles.pickerColumn}>
                                     <Text style={styles.pickerLabel}>Hours</Text>
@@ -999,6 +1151,7 @@ export default function CalendarScreen() {
                                     </Picker>
                                 </View>
                             </View>
+
                             <View style={styles.formActions}>
                                 <TouchableOpacity
                                     style={[styles.actionButton, styles.saveButton]}
@@ -1026,7 +1179,7 @@ export default function CalendarScreen() {
                     style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}
                     onPress={() => setActiveView('tasks')}
                 >
-                    <Text style={styles.tabText}>Add Task</Text>
+                    <Text style={styles.tabText}>Manage{'\n'}  Tasks</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'list' && styles.activeTab]}

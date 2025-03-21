@@ -4,7 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules." />
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/styles.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/models/Task.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/Task.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/calendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/calendar.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/recurrence.js" beforeDir="false" afterPath="$PROJECT_DIR$/constants/recurrence.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -103,7 +111,8 @@
       <workItem from="1742433796796" duration="8353000" />
       <workItem from="1742442341874" duration="23000" />
       <workItem from="1742442682393" duration="4001000" />
-      <workItem from="1742484827723" duration="23725000" />
+      <workItem from="1742484827723" duration="27596000" />
+      <workItem from="1742574313839" duration="14332000" />
     </task>
     <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
       <option name="closed" value="true" />
