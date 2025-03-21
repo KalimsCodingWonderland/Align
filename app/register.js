@@ -1,19 +1,11 @@
+// app/register.js
+
 import React, { useState, useRef, useEffect } from 'react';
-import {
-    View,
-    Text,
-    Alert,
-    Animated,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    Keyboard,
-} from 'react-native';
+import { View, Text, Alert, Animated, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { registerUser } from '../constants/api';
 import AnimatedInput from '../components/AnimatedInput';
 
-// Custom animated button with a subtle scaling effect on press
 const AnimatedButton = ({ title, onPress, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
     const onPressIn = () => {
@@ -49,7 +41,7 @@ export default function RegisterScreen() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const fadeAnim = useRef(new Animated.Value(0)).current; // Fade-in animation
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
@@ -72,31 +64,13 @@ export default function RegisterScreen() {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-                {/* Minimalistic Back Button */}
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Text style={styles.backButtonText}>← Back</Text>
                 </TouchableOpacity>
-
                 <Text style={styles.title}>📝 Register</Text>
-                <AnimatedInput
-                    placeholder="Username"
-                    value={username}
-                    onChangeText={setUsername}
-                />
-                <AnimatedInput
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                />
-                <AnimatedInput
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
+                <AnimatedInput placeholder="Username" value={username} onChangeText={setUsername} />
+                <AnimatedInput placeholder="Email" value={email} onChangeText={setEmail} />
+                <AnimatedInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
                 <AnimatedButton title="Register" onPress={handleRegister} style={styles.button} />
             </Animated.View>
         </TouchableWithoutFeedback>
