@@ -4,6 +4,7 @@ const express = require('express');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const router = express.Router();
 const Feedback = require('./models/Feedback');
+const mongoose = require('mongoose');
 
 const ML_SERVICE_URL = 'https://alignml.onrender.com';
 
