@@ -26,19 +26,24 @@ router.post('/predict', async (req, res) => {
 router.post('/feedback', async (req, res) => {
     try {
         const { userId, category, predicted_duration, user_duration, taskId } = req.body;
+
+        // Convert string IDs to MongoDB ObjectIDs
         const feedback = new Feedback({
-            user_id: userId,
+            user_id: new mongoose.Types.ObjectId(userId),
             category: category,
             duration: user_duration,
-            task_id: taskId
+            task_id: new mongoose.Types.ObjectId(taskId)
         });
+
         await feedback.save();
         res.json({ status: "success" });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ status: "error" });
+        res.status(500).json({
+            status: "error",
+            message: error.message // Include detailed error message
+        });
     }
 });
-
 
 module.exports = router;
