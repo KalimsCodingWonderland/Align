@@ -1,4 +1,4 @@
-// Updated app/paperImport.js with manual category handling queue
+// app/paperImport.js
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -10,15 +10,16 @@ import {
     Image,
     Modal,
     ScrollView,
-    Alert,  // <-- for conflict confirmation if you want
+    Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-// Import or define your conflict helpers:
+// Import API helpers
 import { getTasks, parseImageTasks, parseTaskDetails, addTask } from '../constants/api';
 
+// Helper: Check if two dates fall on the same UTC day
 const isSameUTCDate = (date1, date2) => {
     return (
         date1.getUTCFullYear() === date2.getUTCFullYear() &&
@@ -27,23 +28,26 @@ const isSameUTCDate = (date1, date2) => {
     );
 };
 
+// Helper: Convert a duration string (HH:MM) to milliseconds
 const durationToMilliseconds = (duration) => {
     if (duration === 'DEFAULT') return 0;
     const [hours, minutes] = duration.split(':').map(Number);
     return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
 };
 
+// Helper: Format a date string into a 12‑hour time format
 const formatTaskTime = (dateString) => {
     const date = new Date(dateString);
     let hours = date.getUTCHours();
     const minutes = date.getUTCMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12; // Convert to 12-hour
+    hours = hours % 12 || 12;
     return `${hours}:${minutes} ${ampm}`;
 };
 
+// Helper: Calculate end time given start time and duration
 const calculateEndTime = (startDate, duration) => {
-    if (duration === 'DEFAULT') duration = '00:00'; // up to you
+    if (duration === 'DEFAULT') duration = '00:00';
     const [h, m] = duration.split(':').map(Number);
     const end = new Date(startDate);
     end.setUTCHours(end.getUTCHours() + h);
@@ -51,50 +55,35 @@ const calculateEndTime = (startDate, duration) => {
     return formatTaskTime(end.toISOString());
 };
 
-
+// Helper: Get all tasks that conflict with a new task
 const getConflictingTasks = (newStart, duration, existingTasks) => {
     const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
     const conflicts = [];
-
     for (const task of existingTasks) {
         const taskStart = new Date(task.date);
         if (!isSameUTCDate(newStart, taskStart)) continue;
-
-        const taskDuration = task.time;
-        const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
-
-        // Overlaps if newStart < existingTaskEnd AND existingTaskStart <= newEnd
+        const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
         if (newStart < taskEnd && taskStart <= newEnd) {
-            conflicts.push(task); // Push the entire conflicting task object
+            conflicts.push(task);
         }
     }
-
-    return conflicts; // Return an array of all conflicting tasks
+    return conflicts;
 };
 
+// Helper: Show an alert if there are time conflicts
 const showConflictsAlert = (newTask, conflicts) => {
-    // Example: “Your new task "Study math" from 9:00 AM–10:00 AM overlaps with…”
-    // Then list each conflict with date/time or the conflict’s text.
-
-    // 1) Format the new task’s timeframe
-    const newTaskStartTime = formatTaskTime(newTask.date); // e.g. “9:00 AM”
-    const newTaskEndTime = calculateEndTime(newTask.date, newTask.time); // e.g. “10:00 AM”
-
-    // 2) Build a list of conflict strings
+    const newTaskStartTime = formatTaskTime(newTask.date);
+    const newTaskEndTime = calculateEndTime(newTask.date, newTask.time);
     let conflictItems = '';
     conflicts.forEach(conf => {
         const conflictStartTime = formatTaskTime(conf.date);
         const conflictEndTime = calculateEndTime(conf.date, conf.time);
         conflictItems += `• "${conf.text}" (${conflictStartTime}–${conflictEndTime})\n`;
     });
-
-    // 3) Construct full message
     const fullMessage =
         `Your new task "${newTask.text}" (${newTaskStartTime}–${newTaskEndTime}) overlaps with:\n\n` +
         conflictItems +
         "\nDo you want to schedule it anyway?";
-
-    // 4) Display the alert
     return new Promise((resolve) => {
         Alert.alert(
             'Time Conflict Detected',
@@ -108,8 +97,7 @@ const showConflictsAlert = (newTask, conflicts) => {
     });
 };
 
-
-// Normalizes strings like "2:30", "1 hour 15 min", or "DEFAULT" to HH:MM
+// Helper: Normalize duration strings (e.g. "2:30", "1 hour 15 min", or "DEFAULT")
 const normalizeDuration = (durationStr) => {
     if (!durationStr || durationStr.toUpperCase() === 'DEFAULT') return 'DEFAULT';
     if (durationStr.includes(':')) {
@@ -126,7 +114,14 @@ const normalizeDuration = (durationStr) => {
 };
 
 const categories = [
-    'STUDY', 'ENTERTAINMENT', 'WORK', 'EVENT', 'ERRAND', 'EXERCISE', 'HOUSEHOLD CHORE', 'OTHER'
+    'STUDY',
+    'ENTERTAINMENT',
+    'WORK',
+    'EVENT',
+    'ERRAND',
+    'EXERCISE',
+    'HOUSEHOLD CHORE',
+    'OTHER'
 ];
 
 export default function PaperImportScreen() {
@@ -138,11 +133,9 @@ export default function PaperImportScreen() {
     const [manualQueue, setManualQueue] = useState([]);
     const [currentManual, setCurrentManual] = useState(null);
     const router = useRouter();
-
-    // We'll store tasks from DB to check conflicts:
+    // We'll fetch all existing tasks from the DB for conflict checking
     const [allTasks, setAllTasks] = useState([]);
 
-    // On mount, fetch existing tasks for conflict-checking:
     useEffect(() => {
         (async () => {
             try {
@@ -159,6 +152,7 @@ export default function PaperImportScreen() {
         })();
     }, []);
 
+    // When a manual task (with no category) is confirmed, include recurrence info
     const handleManualCategorySelection = async (selectedCategory) => {
         try {
             const token = await AsyncStorage.getItem('token');
@@ -168,33 +162,23 @@ export default function PaperImportScreen() {
                 category: selectedCategory,
                 time: task.duration,
                 date: task.date,
+                recurrence: { type: 'none' },
+                isRecurring: false,
             };
 
-            // Conflict check here, too:
-            const conflicts = getConflictingTasks(
-                new Date(taskToAdd.date),
-                taskToAdd.time,
-                allTasks
-            );
+            // Conflict check
+            const conflicts = getConflictingTasks(new Date(taskToAdd.date), taskToAdd.time, allTasks);
             if (conflicts.length > 0) {
                 const proceed = await showConflictsAlert(taskToAdd, conflicts);
                 if (!proceed) {
-                    // 1) Skip just THIS task
                     const remaining = manualQueue.slice(1);
                     setManualQueue(remaining);
                     setCurrentManual(remaining[0] || null);
-
-                    // 2) If no more tasks in the queue, close the modal
-                    if (remaining.length === 0) {
-                        const anySuccess = results.some(r => r.success);
-                        setShowCategoryModal(false);
-                    }
-
-                    return; // Return so we do not attempt to add the conflicting task
+                    return;
                 }
             }
 
-// Now we can add it...
+            // Add the task (with recurrence fields included)
             const response = await addTask(taskToAdd, token);
             if (response._id) {
                 setAllTasks(prev => [...prev, response]);
@@ -209,7 +193,7 @@ export default function PaperImportScreen() {
         }
     };
 
-    // We'll create a small helper to ask user if they'd like to proceed
+    // Helper to confirm conflict (not used directly in this file)
     const confirmConflict = () => {
         return new Promise((resolve) => {
             Alert.alert(
@@ -224,6 +208,7 @@ export default function PaperImportScreen() {
         });
     };
 
+    // Function to pick an image from camera or gallery and process it
     const pickImage = async (useCamera = false) => {
         setLoading(true);
         setError('');
@@ -251,11 +236,10 @@ export default function PaperImportScreen() {
                 const base64 = image.base64;
                 const taskTexts = await parseImageTasks(base64);
                 const token = await AsyncStorage.getItem('token');
-
                 let importedTasks = [];
                 let queuedManuals = [];
 
-                // Loop lines from OCR
+                // Loop through each OCR line
                 for (const line of taskTexts) {
                     try {
                         const match = line.match(
@@ -278,12 +262,12 @@ export default function PaperImportScreen() {
 
                         const typedString = `${desc} on ${rawDate} at ${rawTime} for ${rawDuration}`;
                         const details = await parseTaskDetails(typedString);
-
                         let normalized = normalizeDuration(details.duration);
                         if (normalized === "00:00") normalized = "DEFAULT";
 
                         const isoDate = new Date(`${details.scheduled_date}T${details.scheduled_time}:00Z`).toISOString();
 
+                        // If the OCR/parsing returns "MANUAL", queue it for manual category selection
                         if (details.category === "MANUAL") {
                             queuedManuals.push({
                                 text: desc,
@@ -293,24 +277,21 @@ export default function PaperImportScreen() {
                             continue;
                         }
 
+                        // Build the new task object including recurrence fields (default to none)
                         const newTask = {
                             text: desc,
                             category: details.category,
                             time: normalized,
                             date: isoDate,
+                            recurrence: { type: 'none' },
+                            isRecurring: false,
                         };
 
-                        // Grab all conflicts:
-                        const conflicts = getConflictingTasks(
-                            new Date(newTask.date),
-                            newTask.time,
-                            allTasks
-                        );
-
+                        // Check for conflicts
+                        const conflicts = getConflictingTasks(new Date(newTask.date), newTask.time, allTasks);
                         if (conflicts.length > 0) {
                             const proceed = await showConflictsAlert(newTask, conflicts);
                             if (!proceed) {
-                                // User canceled, so skip adding this OCR task:
                                 importedTasks.push({
                                     text: desc,
                                     success: true,
@@ -320,14 +301,11 @@ export default function PaperImportScreen() {
                             }
                         }
 
-                        // If user proceeds, add to DB:
+                        // Add the task to the DB (and later to UI)
                         const response = await addTask(newTask, token);
-
-                        // If success, add to local array so subsequent tasks see it for conflict checks:
                         if (response._id) {
                             setAllTasks(prev => [...prev, response]);
                         }
-
                         importedTasks.push({
                             text: desc,
                             success: !!response._id,
@@ -343,11 +321,9 @@ export default function PaperImportScreen() {
                     }
                 }
 
-
                 setResults(importedTasks);
                 setManualQueue(queuedManuals);
                 setCurrentManual(queuedManuals[0] || null);
-
                 const anySuccess = importedTasks.some(r => r.success);
                 setImportSuccess(anySuccess);
             }
@@ -364,13 +340,10 @@ export default function PaperImportScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <MaterialIcons name="arrow-back" size={24} color="#007AFF" />
             </TouchableOpacity>
-
             <Text style={styles.title}>Scan Paper Schedule</Text>
-
             {selectedImage && (
                 <Image source={{ uri: selectedImage }} style={styles.previewImage} />
             )}
-
             <View style={styles.buttonGroup}>
                 <TouchableOpacity
                     style={[styles.button, styles.cameraButton]}
@@ -380,7 +353,6 @@ export default function PaperImportScreen() {
                     <MaterialIcons name="camera-alt" size={24} color="white" />
                     <Text style={styles.buttonText}>Take Photo</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     style={[styles.button, styles.galleryButton]}
                     onPress={() => pickImage(false)}
@@ -390,15 +362,12 @@ export default function PaperImportScreen() {
                     <Text style={styles.buttonText}>Choose from Gallery</Text>
                 </TouchableOpacity>
             </View>
-
             {loading && <ActivityIndicator size="large" color="#007AFF" />}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-
             <View style={styles.resultsContainer}>
                 {importSuccess === true && <Text style={styles.successIcon}>✓</Text>}
                 {importSuccess === false && <Text style={styles.errorIcon}>✕</Text>}
             </View>
-
             {/* Manual Category Modal */}
             <Modal visible={!!currentManual} transparent={true}>
                 <View style={styles.modalContainer}>
@@ -422,7 +391,6 @@ export default function PaperImportScreen() {
         </View>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
