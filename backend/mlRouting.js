@@ -1,6 +1,9 @@
+// backend/mlRouting.js
+
 const express = require('express');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const router = express.Router();
+const Feedback = require('./models/Feedback');
 
 const ML_SERVICE_URL = 'https://alignml.onrender.com';
 
@@ -22,18 +25,20 @@ router.post('/predict', async (req, res) => {
 
 router.post('/feedback', async (req, res) => {
     try {
-        const { userId, category, predicted_duration, user_duration } = req.body;
-        const response = await fetch(`${ML_SERVICE_URL}/feedback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, category, predicted_duration, user_duration }),
+        const { userId, category, predicted_duration, user_duration, taskId } = req.body;
+        const feedback = new Feedback({
+            user_id: userId,
+            category: category,
+            duration: user_duration,
+            task_id: taskId
         });
-        const data = await response.json();
-        res.json(data);
+        await feedback.save();
+        res.json({ status: "success" });
     } catch (error) {
         console.error(error);
-        res.json({ status: "error" });
+        res.status(500).json({ status: "error" });
     }
 });
+
 
 module.exports = router;
