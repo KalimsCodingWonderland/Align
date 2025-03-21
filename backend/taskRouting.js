@@ -4,7 +4,7 @@ const express = require('express');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const Task = require('./models/Task');
 const authMiddleware = require('./middleware/auth');
-
+const Feedback = require('./models/Feedback');
 const router = express.Router();
 
 // Create a new task with ML prediction if duration is default "30 min"
@@ -101,10 +101,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Delete a task
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
-        const deletedTask = await Task.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+        const deletedTask = await Task.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user._id
+        });
         if (!deletedTask) {
             return res.status(404).json({ error: 'Task not found' });
         }
+        // Delete associated feedback
+        await Feedback.deleteMany({ task_id: req.params.id });
         res.json({ success: true });
     } catch (error) {
         console.error(error);
