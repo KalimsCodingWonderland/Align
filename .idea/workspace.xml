@@ -4,12 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Fixed Recurrence settings completley. Then Paper Import Broke and I fixed that. Recurrence and Align Paper should work completley now. I also styled the Recurrence settings.">
-      <change afterPath="$PROJECT_DIR$/backend/models/Feedback.js" afterDir="false" />
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/mlRouting.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mlRouting.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/taskRouting.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/taskRouting.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/models/Feedback.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/Feedback.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,7 +109,7 @@
       <workItem from="1742442341874" duration="23000" />
       <workItem from="1742442682393" duration="4001000" />
       <workItem from="1742484827723" duration="27596000" />
-      <workItem from="1742574313839" duration="16470000" />
+      <workItem from="1742574313839" duration="17577000" />
     </task>
     <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
       <option name="closed" value="true" />
@@ -464,7 +463,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742589587095</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted.">
+      <option name="closed" value="true" />
+      <created>1742591200716</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1742591200716</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -482,7 +489,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Upscaled the living daylights out of our Intro." />
     <MESSAGE value="File split the calendar.js file into addTask.js, calendar.js, listView.js, styles.js, and taskManagment.js. Fixed an issue with the edit modal not edditing the correct task. Fixed a little styling issues/ cleaned up some of the looks." />
     <MESSAGE value="Added conflict checking." />
     <MESSAGE value="Made the calendar view sort tasks by time." />
@@ -507,6 +513,7 @@
     <MESSAGE value="Trying to add task recurrence functionality. #2" />
     <MESSAGE value="Added recurrence settings to edit modal. The never end option is broken, it works as long as an end date or limit is given. Need to make it so that it is easy to use, also need to make it follow all the rules of the ML model, and time conflict rules." />
     <MESSAGE value="Fixed Recurrence settings completley. Then Paper Import Broke and I fixed that. Recurrence and Align Paper should work completley now. I also styled the Recurrence settings." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed Recurrence settings completley. Then Paper Import Broke and I fixed that. Recurrence and Align Paper should work completley now. I also styled the Recurrence settings." />
+    <MESSAGE value="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted." />
+    <option name="LAST_COMMIT_MESSAGE" value="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted." />
   </component>
 </project>

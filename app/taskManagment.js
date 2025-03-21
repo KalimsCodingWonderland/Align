@@ -629,20 +629,24 @@ export default function CalendarScreen() {
             }
         }
 
+        if (!feedbackTask._id || !feedbackTask.user) {
+            Alert.alert('Error', 'Invalid task data');
+            return;
+        }
+
         // Send feedback to backend
         try {
             const response = await fetch('https://align-cvy6.onrender.com/ml/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: feedbackTask.user,
+                    userId: feedbackTask.user.toString(), // Ensure string format
                     category: feedbackTask.category,
                     predicted_duration: predictedMinutes,
                     user_duration: userDuration,
-                    taskId: feedbackTask._id, // Add task ID here
+                    taskId: feedbackTask._id.toString() // Explicit string conversion
                 }),
             });
-
             const data = await response.json();
             console.log('Feedback response:', data);
         } catch (error) {
