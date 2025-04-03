@@ -5,14 +5,15 @@ import {
     View,
     Text,
     TextInput,
-    Button,
+    // Button, // No longer used directly
     Modal,
     TouchableOpacity,
     FlatList,
-    SectionList,
+    // SectionList, // No longer used directly
     ScrollView,
     Alert,
     Animated,
+    Platform, // Import Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
@@ -45,7 +46,7 @@ const categories = [
     'OTHER',
 ];
 
-// Helper functions remain unchanged.
+// --- HELPER FUNCTIONS (Keep existing helpers: normalizeDuration, formatTaskTime, formatCompletionTime, formatDuration, calculateEndTime, formatSectionDate, formatTaskDate, isSameUTCDate, durationToMilliseconds) ---
 const normalizeDuration = (durationStr) => {
     if (!durationStr) return "DEFAULT";
     if (durationStr.includes(':')) {
@@ -71,43 +72,31 @@ const normalizeDuration = (durationStr) => {
 
 const formatTaskTime = (dateString) => {
     const date = new Date(dateString);
-    let hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    return `${hours}:${minutes} ${ampm}`;
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
 };
 
 const formatCompletionTime = (timeStr) => {
-    if (!timeStr) return "";
-    const [hStr, mStr] = timeStr.split(':');
-    let h = Number(hStr);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    h = h ? h : 12;
-    return `${h}:${mStr} ${ampm}`;
+    if (!timeStr || timeStr === "DEFAULT") return "Default";
+    return formatDuration(timeStr);
 };
 
 const formatDuration = (durationStr) => {
-    if (durationStr && durationStr.includes(':')) {
+    if (!durationStr || durationStr === "DEFAULT") return "Default";
+    if (durationStr.includes(':')) {
         const [h, m] = durationStr.split(':').map(Number);
         let parts = [];
-        if (h > 0) {
-            parts.push(`${h} hr${h > 1 ? 's' : ''}`);
-        }
-        if (m > 0) {
-            parts.push(`${m} min`);
-        }
-        return parts.length > 0 ? parts.join(' ') : "DEFAULT";
+        if (h > 0) parts.push(`${h} hr${h > 1 ? 's' : ''}`);
+        if (m > 0) parts.push(`${m} min`);
+        return parts.length > 0 ? parts.join(' ') : "0 min";
     }
     return durationStr;
 };
 
-const calculateEndTime = (startDate, duration) => {
-    if (duration === "DEFAULT") duration = "DEFAULT";
+const calculateEndTime = (startDateISO, duration) => {
+    if (duration === "DEFAULT") duration = "01:00";
+    const startDate = new Date(startDateISO);
     const [hours, minutes] = duration.split(':').map(Number);
-    const endTime = new Date(startDate);
+    const endTime = new Date(startDate.getTime());
     endTime.setUTCHours(endTime.getUTCHours() + hours);
     endTime.setUTCMinutes(endTime.getUTCMinutes() + minutes);
     return formatTaskTime(endTime.toISOString());
@@ -116,33 +105,28 @@ const calculateEndTime = (startDate, duration) => {
 const formatSectionDate = (dateString) => {
     const [year, month, day] = dateString.split('-');
     const date = new Date(Date.UTC(year, month - 1, day));
-    const monthName = date.toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
-    const weekday = date.toLocaleDateString(undefined, { weekday: 'long', timeZone: 'UTC' });
-    const dayInt = parseInt(day, 10);
-    const ordinal = (n) => {
-        const s = ['th','st','nd','rd'];
-        const v = n % 100;
-        return s[(v-20)%10] || s[v] || s[0];
-    };
-    const ordinalDay = `${dayInt}${ordinal(dayInt)}`;
-    return `${monthName} ${ordinalDay}, ${year} - ${weekday}`;
+    let formatted = date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC'
+    });
+    const weekday = date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        timeZone: 'UTC'
+    });
+    return `${formatted} - ${weekday}`;
 };
+
 
 const formatTaskDate = (dateString) => {
     const date = new Date(dateString);
     const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
     const day = date.getUTCDate().toString().padStart(2, '0');
-    const weekday = date
-        .toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
-        .toUpperCase();
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }).toUpperCase();
     return `${month}/${day} - ${weekday}`;
 };
 
-//
-// --- NEW: Conflict logic that enumerates conflicting tasks ---
-//
-
-// 1) A helper to see if two dates are on the same UTC day
 const isSameUTCDate = (date1, date2) => {
     return (
         date1.getUTCFullYear() === date2.getUTCFullYear() &&
@@ -151,66 +135,231 @@ const isSameUTCDate = (date1, date2) => {
     );
 };
 
-// 2) Convert a duration "HH:MM" into total milliseconds
 const durationToMilliseconds = (duration) => {
-    if (duration === 'DEFAULT') duration = '00:00';
+    if (!duration || duration === 'DEFAULT') duration = '01:00';
     const [h, m] = duration.split(':').map(Number);
     return (h * 60 + m) * 60 * 1000;
 };
 
-// 3) Gather an array of all existing tasks that conflict with the new one
-const getConflictingTasks = (newStart, duration, existingTasks) => {
-    const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
+const timeToMinutes = (timeStr) => {
+    if (!timeStr || timeStr === 'DEFAULT') return 60;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+};
+
+// --- NEW: CONFLICT LOGIC INCLUDING SLEEP ---
+
+const getSleepSchedule = async () => {
+    let wakeTime = await AsyncStorage.getItem('wakeTime') || "07:00";
+    let bedtime = await AsyncStorage.getItem('bedtimeTime') || "23:00";
+    return { wakeTime, bedtime };
+};
+
+const getSleepIntervals = (checkDate, wakeTimeStr, bedtimeStr) => {
+    const wakeMinutes = timeToMinutes(wakeTimeStr);
+    const bedMinutes = timeToMinutes(bedtimeStr);
+
+    const sleepIntervals = [];
+
+    const checkDateStart = new Date(checkDate);
+    checkDateStart.setUTCHours(0, 0, 0, 0);
+
+    const checkDateEnd = new Date(checkDateStart);
+    checkDateEnd.setUTCDate(checkDateStart.getUTCDate() + 1);
+
+    if (bedMinutes > wakeMinutes) {
+        let sleepStart1 = new Date(checkDateStart);
+        let sleepEnd1 = new Date(checkDateStart);
+        sleepEnd1.setUTCMinutes(wakeMinutes);
+
+        let sleepStart2 = new Date(checkDateStart);
+        sleepStart2.setUTCMinutes(bedMinutes);
+        let sleepEnd2 = new Date(checkDateEnd);
+
+        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
+        sleepIntervals.push({ start: sleepStart2, end: sleepEnd2 });
+
+    } else {
+        let sleepStart1 = new Date(checkDateStart);
+        sleepStart1.setUTCMinutes(bedMinutes);
+        let sleepEnd1 = new Date(checkDateEnd);
+
+        let sleepStart2 = new Date(checkDateEnd);
+        let sleepEnd2 = new Date(checkDateEnd);
+        sleepEnd2.setUTCMinutes(wakeMinutes);
+
+        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
+        let sleepStart3 = new Date(checkDateStart);
+        let sleepEnd3 = new Date(checkDateStart);
+        sleepEnd3.setUTCMinutes(wakeMinutes);
+        sleepIntervals.push({ start: sleepStart3, end: sleepEnd3 });
+    }
+
+    return sleepIntervals;
+};
+
+const getConflictingTasks = async (newTaskStart, duration, existingTasks) => {
+    const { wakeTime, bedtime } = await getSleepSchedule();
+    const expandedTasks = existingTasks.flatMap(task => generateRecurringTasks(task));
+    const newTaskEnd = new Date(newTaskStart.getTime() + durationToMilliseconds(duration));
     const conflicts = [];
 
-    for (const task of existingTasks) {
+    for (const task of expandedTasks) {
         const taskStart = new Date(task.date);
-        // Only compare if same day
-        if (!isSameUTCDate(newStart, taskStart)) continue;
-
-        const taskDuration = task.time;
-        const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
-
-        // Overlaps if newStart < existingTaskEnd AND existingTaskStart <= newEnd
-        if (newStart < taskEnd && taskStart <= newEnd) {
+        if (!isSameUTCDate(newTaskStart, taskStart)) continue;
+        const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
+        if (newTaskStart < taskEnd && taskStart < newTaskEnd) {
             conflicts.push(task);
         }
     }
-    return conflicts;
+
+    const sleepIntervals = getSleepIntervals(newTaskStart, wakeTime, bedtime);
+    for (const interval of sleepIntervals) {
+        if (newTaskStart < interval.end && interval.start < newTaskEnd) {
+            conflicts.push({
+                _id: `sleep_${interval.start.toISOString()}`,
+                text: "Sleep Schedule",
+                category: "SLEEP",
+                date: interval.start.toISOString(),
+                time: `${Math.floor((interval.end - interval.start) / 3600000)
+                    .toString()
+                    .padStart(2, '0')}:${Math.floor(((interval.end - interval.start) % 3600000) / 60000)
+                    .toString()
+                    .padStart(2, '0')}`,
+                isRecurring: false,
+                predicted: false,
+            });
+            break;
+        }
+    }
+
+    const uniqueConflicts = Array.from(new Map(conflicts.map(c => [c._id, c])).values());
+
+    return uniqueConflicts;
 };
 
-// 4) Show an Alert listing the new task time range plus each conflict’s time range
 const showConflictsAlert = (newTask, conflicts) => {
-    // Format the new task’s timeframe
     const newTaskStartTime = formatTaskTime(newTask.date);
     const newTaskEndTime = calculateEndTime(newTask.date, newTask.time);
-
-    // Build a bullet list of conflict info
     let conflictItems = '';
+
     conflicts.forEach(conf => {
         const conflictStartTime = formatTaskTime(conf.date);
-        const conflictEndTime = calculateEndTime(conf.date, conf.time);
-        conflictItems += `• "${conf.text}" (${conflictStartTime}–${conflictEndTime})\n`;
+        const conflictEndTime = calculateEndTime(conf.date, conf.time === 'DEFAULT' ? '01:00' : conf.time);
+        const conflictName = conf.category === "SLEEP" ? conf.text : `"${conf.text}"`;
+        conflictItems += `• ${conflictName} (${conflictStartTime}–${conflictEndTime})\n`;
     });
 
-    // Construct the final message
     const fullMessage =
         `Your new task "${newTask.text}" (${newTaskStartTime}–${newTaskEndTime}) overlaps with:\n\n` +
         conflictItems +
-        '\nDo you want to schedule it anyway?';
+        "\nHow do you want to proceed?";
 
-    // Return a Promise so we can `await` the user’s decision
     return new Promise((resolve) => {
         Alert.alert(
             'Time Conflict Detected',
             fullMessage,
             [
-                { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-                { text: 'Align Anyway', onPress: () => resolve(true) },
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve("cancel") },
+                { text: 'Override', onPress: () => resolve("override") },
+                { text: 'Smart Align', onPress: () => resolve("smart") },
             ],
             { cancelable: false }
         );
     });
+};
+
+const isValidDate = (year, month, day) => {
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return (
+        date.getUTCFullYear() === year &&
+        date.getUTCMonth() === month - 1 &&
+        date.getUTCDate() === day
+    );
+};
+
+const smartAlignTask = async (newTask, existingTasks) => {
+    const { wakeTime, bedtime } = await getSleepSchedule();
+    const wakeMinutes = timeToMinutes(wakeTime);
+    const bedMinutes = timeToMinutes(bedtime);
+
+    let originalDate = new Date(newTask.date);
+    let originalDayStart = new Date(originalDate);
+    originalDayStart.setUTCHours(0, 0, 0, 0);
+
+    let awakeStartForOriginal = new Date(originalDayStart);
+    awakeStartForOriginal.setUTCMinutes(wakeMinutes);
+    let awakeEndForOriginal = new Date(originalDayStart);
+    awakeEndForOriginal.setUTCMinutes(bedMinutes);
+
+    let startDate;
+    if (originalDate < awakeStartForOriginal || originalDate >= awakeEndForOriginal) {
+        startDate = new Date(originalDayStart);
+        startDate.setUTCDate(startDate.getUTCDate() + 1);
+    } else {
+        startDate = originalDate;
+    }
+
+    const taskDurationMs = durationToMilliseconds(newTask.time);
+
+    const allExpandedTasks = existingTasks.flatMap(t => generateRecurringTasks(t));
+
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        let currentDayBase = new Date(startDate);
+        currentDayBase.setUTCDate(startDate.getUTCDate() + dayOffset);
+        currentDayBase.setUTCHours(0, 0, 0, 0);
+
+        let awakeStart = new Date(currentDayBase);
+        awakeStart.setUTCMinutes(wakeMinutes);
+
+        let awakeEnd = new Date(currentDayBase);
+        awakeEnd.setUTCMinutes(bedMinutes);
+
+        const dayTasks = allExpandedTasks
+            .filter(task => {
+                let taskStart = new Date(task.date);
+                let taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
+                return taskStart < awakeEnd && taskEnd > awakeStart;
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const busyIntervals = dayTasks.map(task => {
+            let taskStart = new Date(task.date);
+            let taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
+            return {
+                start: new Date(Math.max(taskStart.getTime(), awakeStart.getTime())),
+                end: new Date(Math.min(taskEnd.getTime(), awakeEnd.getTime()))
+            };
+        }).filter(interval => interval.end > interval.start);
+
+        let pointer = new Date(awakeStart.getTime());
+        for (let i = 0; i <= busyIntervals.length; i++) {
+            let freeStart = new Date(pointer.getTime());
+            let freeEnd = (i < busyIntervals.length) ? new Date(busyIntervals[i].start.getTime()) : new Date(awakeEnd.getTime());
+            if (freeEnd > awakeEnd) {
+                freeEnd = new Date(awakeEnd.getTime());
+            }
+            if (freeStart < freeEnd) {
+                let freeDurationMs = freeEnd.getTime() - freeStart.getTime();
+                if (freeDurationMs >= taskDurationMs) {
+                    return { ...newTask, date: freeStart.toISOString() };
+                }
+            }
+            if (i < busyIntervals.length) {
+                pointer = new Date(Math.max(pointer.getTime(), busyIntervals[i].end.getTime()));
+            } else {
+                pointer = new Date(awakeEnd.getTime());
+            }
+            if (pointer >= awakeEnd) break;
+        }
+    }
+
+    Alert.alert("Smart Align Failed", "Could not find an open slot within the next 7 days during your awake hours.");
+    return null;
+};
+
+const showConflictsAlertForFeedback = (newTask, conflicts) => {
+    // This function remains unchanged if used for feedback.
 };
 
 export default function CalendarScreen() {
@@ -223,45 +372,48 @@ export default function CalendarScreen() {
     const [activeView, setActiveView] = useState('tasks');
     const [selectedDate, setSelectedDate] = useState(null);
     const [editingTask, setEditingTask] = useState(null);
+
+    // State for Edit Modal fields
     const [editDate, setEditDate] = useState('');
-    const [editHour, setEditHour] = useState("12");
-    const [editMinute, setEditMinute] = useState("00");
-    const [scheduledPeriod, setScheduledPeriod] = useState("AM");
+    const [editTime, setEditTime] = useState(new Date());
+    const [showEditTimePicker, setShowEditTimePicker] = useState(false);
     const [editCategory, setEditCategory] = useState('');
     const [editTaskInput, setEditTaskInput] = useState('');
-    const [editCompletionHour, setEditCompletionHour] = useState("12");
-    const [editCompletionMinute, setEditCompletionMinute] = useState("00");
-    const [completionPeriod, setCompletionPeriod] = useState("AM");
-    const [editAmPm, setEditAmPm] = useState("AM");
+    const [editDuration, setEditDuration] = useState('01:00');
+    const [showDurationPicker, setShowDurationPicker] = useState(false);
+    const [tempDurationHours, setTempDurationHours] = useState('1');
+    const [tempDurationMinutes, setTempDurationMinutes] = useState('0');
 
-    // State for feedback modal
+    // Recurrence State
+    const [recurrenceType, setRecurrenceType] = useState('none');
+    const [recurrenceDays, setRecurrenceDays] = useState([]);
+    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+    const [recurrenceEndType, setRecurrenceEndType] = useState('never');
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
+    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(null);
+
+    // Feedback Modal State
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
     const [feedbackTask, setFeedbackTask] = useState(null);
     const [awaitingCorrection, setAwaitingCorrection] = useState(false);
     const [correctedDuration, setCorrectedDuration] = useState("");
 
-    // State for recurrence
-    const [recurrenceType, setRecurrenceType] = useState('none');
-    const [recurrenceDays, setRecurrenceDays] = useState([]);
-    const [recurrenceInterval, setRecurrenceInterval] = useState(null);
-    const [recurrenceEndType, setRecurrenceEndType] = useState('never');
-    const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
-    const [recurrenceOccurrences, setRecurrenceOccurrences] = useState(null);
-
-    // -------------------------------
-    // NEW STATE FOR PICKER MODALS
-    // -------------------------------
+    // Picker Modals State
     const [showRecurrenceTypePicker, setShowRecurrenceTypePicker] = useState(false);
     const [showRecurrenceEndTypePicker, setShowRecurrenceEndTypePicker] = useState(false);
     const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-    const [showStartHourPicker, setShowStartHourPicker] = useState(false);
-    const [showStartMinutePicker, setShowStartMinutePicker] = useState(false);
-    const [showStartAmPmPicker, setShowStartAmPmPicker] = useState(false);
-    const [showCompletionHourPicker, setShowCompletionHourPicker] = useState(false);
-    const [showCompletionMinutePicker, setShowCompletionMinutePicker] = useState(false);
-    // -------------------------------
 
-    // Fetch tasks once on mount (or whenever this screen is pushed)
+    const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        if (feedbackModalVisible) {
+            Animated.timing(feedbackModalOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [feedbackModalVisible]);
+
     useFocusEffect(
         React.useCallback(() => {
             const loadData = async () => {
@@ -271,10 +423,13 @@ export default function CalendarScreen() {
                     const tasksFromApi = await getTasks(storedToken);
                     if (Array.isArray(tasksFromApi)) {
                         setTasks(tasksFromApi);
+                    } else {
+                        setTasks([]);
+                        console.error("Failed to load tasks or tasks format incorrect");
                     }
+                } else {
+                    router.replace('/');
                 }
-
-                // ✅ Also check if manualTask was passed via paper import
                 const stored = await AsyncStorage.getItem('manualTask');
                 if (stored) {
                     const manualTask = JSON.parse(stored);
@@ -283,262 +438,26 @@ export default function CalendarScreen() {
                     await AsyncStorage.removeItem('manualTask');
                 }
             };
-
             loadData();
-        }, [])
+        }, [router])
     );
 
     const getLocalDateKey = (dateStr) => {
-        return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'UTC' });
-    };
-
-    const handleAddTask = async () => {
-        if (!taskInput.trim()) return;
-
-        const details = await parseTaskDetails(taskInput.trim());
-        const { category, scheduled_date, scheduled_time, duration } = details;
-        const [year, month, day] = scheduled_date.split('-');
-        const [hour, minute] = scheduled_time.split(':');
-        const newTaskDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 0));
-
-        if (category === 'MANUAL') {
-            // If the parse says "MANUAL," we ask user to pick a category
-            setCurrentTask({ text: taskInput, date: newTaskDate.toISOString() });
-            setShowCategoryModal(true);
-        } else {
-            // Build the new Task
-            const newTask = {
-                text: taskInput,
-                category,
-                time: normalizeDuration(duration),
-                date: newTaskDate.toISOString(),
-                recurrence: recurrenceType,
-            };
-
-            // Check for conflicts
-            const conflicts = getConflictingTasks(new Date(newTask.date), newTask.time, tasks);
-            if (conflicts.length > 0) {
-                const proceed = await showConflictsAlert(newTask, conflicts);
-                if (!proceed) return; // user canceled
-            }
-
-            // If proceed or no conflict
-            const result = await addTask(newTask, token);
-            if (result._id) {
-                setTasks((prev) => [...prev, result]);
-                setTaskInput('');
-            } else {
-                Alert.alert('Error', result.error || 'Failed to add task');
-            }
-        }
-    };
-
-    const confirmConflict = () => {
-        return new Promise((resolve) => {
-            Alert.alert(
-                'Time Conflict',
-                'This task overlaps with an existing task. Would you like to schedule it anyway?',
-                [
-                    { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-                    { text: 'Align Anyway', onPress: () => resolve(true) },
-                ],
-                { cancelable: false }
-            );
-        });
-    };
-
-    // app/taskManagement.js - Update conflict checking
-    const checkTimeConflict = (newStart, duration, existingTasks) => {
-        const expandedTasks = existingTasks.flatMap(t => generateRecurringTasks(t));
-        const newEnd = new Date(newStart.getTime() + durationToMilliseconds(duration));
-
-        for (const task of expandedTasks) {
-            const taskStart = new Date(task.date);
-            if (!isSameUTCDate(newStart, taskStart)) continue;
-
-            const taskDuration = task.time;
-            const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(taskDuration));
-
-            if (newStart < taskEnd && taskStart <= newEnd) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    const handleManualCategory = async (selectedCategory) => {
-        const timeMatch = currentTask.text.match(/(\d+)\s*(min|minutes|hour|hours)/i);
-        const estimatedTime = timeMatch ? normalizeDuration(timeMatch[0]) : "DEFAULT";
-        const newTask = {
-            text: currentTask.text,
-            category: selectedCategory,
-            time: estimatedTime,
-            date: currentTask.date,
-            recurrence: recurrence.type !== 'none' ? {
-                type: recurrence.type,
-                daysOfWeek: recurrence.daysOfWeek || [],
-                interval: recurrence.interval || 1,
-                endType: recurrence.endType || 'never',
-                endDate: recurrence.endDate || null,
-                occurrences: recurrence.occurrences || null
-            } : null,
-            isRecurring: recurrence.type !== 'none'
-        };
-
-        // Check conflicts
-        const conflicts = getConflictingTasks(new Date(newTask.date), newTask.time, tasks);
-        if (conflicts.length > 0) {
-            const proceed = await showConflictsAlert(newTask, conflicts);
-            if (!proceed) {
-                setShowCategoryModal(false);
-                setCurrentTask(null);
-                return;
-            }
-        }
-
-        // Add if user agrees or no conflict
-        const result = await addTask(newTask, token);
-        if (result._id) {
-            setTasks((prev) => [...prev, result]);
-            setShowCategoryModal(false);
-            setCurrentTask(null);
-            setTaskInput('');
-        } else {
-            Alert.alert('Error', result.error || 'Failed to add task');
-        }
-    };
-
-    const handleEditTask = (task) => {
-        setEditingTask(task);
-        setEditTaskInput(task.text);
-        setEditCategory(task.category);
-        setRecurrenceType(task.recurrence?.type || 'none');
-        setRecurrenceDays(task.recurrence?.daysOfWeek || []);
-        setRecurrenceInterval(task.recurrence?.interval || 1);
-        setRecurrenceEndType(task.recurrence?.endType || 'never');
-        setRecurrenceEndDate(task.recurrence?.endDate ? new Date(task.recurrence.endDate) : null);
-        setRecurrenceOccurrences(task.recurrence?.occurrences || 1);
-
-        const taskDate = new Date(task.date);
-        const hour24 = taskDate.getUTCHours();
-        const amPm = hour24 >= 12 ? "PM" : "AM";
-        const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-
-        setEditHour(hour12.toString());
-        setEditMinute(taskDate.getUTCMinutes().toString().padStart(2, '0'));
-        setEditAmPm(amPm);
-
-        const duration = task.completionTime || task.time;
-        if (duration && duration.includes(':')) {
-            const [cHour, cMinute] = duration.split(':');
-            setEditCompletionHour(String(Number(cHour)));
-            setEditCompletionMinute(cMinute);
-        } else {
-            setEditCompletionHour("0");
-            setEditCompletionMinute("0");
-        }
-
-        const yyyy = taskDate.getUTCFullYear();
-        const mm = (taskDate.getUTCMonth() + 1).toString().padStart(2, '0');
-        const dd = taskDate.getUTCDate().toString().padStart(2, '0');
-        setEditDate(`${yyyy}-${mm}-${dd}`);
-    };
-
-    const handleDateSelect = (day) => {
-        setEditDate(day.dateString);
-    };
-
-    const saveEditedTask = async () => {
-        const taskToEdit = editingTask;
-        if (!taskToEdit) return;
-
-        const [year, month, day] = editDate.split('-');
-        let hour = Number(editHour);
-        if (editAmPm === "PM" && hour < 12) hour += 12;
-        if (editAmPm === "AM" && hour === 12) hour = 0;
-        const updatedDate = new Date(Date.UTC(
-            Number(year),
-            Number(month) - 1,
-            Number(day),
-            hour,
-            Number(editMinute),
-            0
-        ));
-
-        // app/taskManagement.js - In saveEditedTask
-        const updatedTask = {
-            ...taskToEdit,
-            text: editTaskInput,
-            date: updatedDate.toISOString(),
-            category: editCategory,
-            time: `${editCompletionHour.padStart(2, '0')}:${editCompletionMinute.padStart(2, '0')}`,
-            recurrence: recurrenceType !== 'none' ? {
-                type: recurrenceType,
-                daysOfWeek: recurrenceType === 'weekly' || recurrenceType === 'custom' ? recurrenceDays : [],
-                interval: recurrenceInterval,
-                endType: recurrenceEndType,
-                endDate: recurrenceEndType === 'date' ? recurrenceEndDate.toISOString() : null,
-                occurrences: recurrenceEndType === 'count' ? recurrenceOccurrences : null
-            } : null
-        };
-
-        try {
-            // We exclude the current task from the conflict check
-            const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
-
-            // See if it conflicts
-            const conflicts = getConflictingTasks(
-                new Date(updatedTask.date),
-                updatedTask.time,
-                otherTasks
-            );
-            if (conflicts.length > 0) {
-                const proceed = await showConflictsAlert(updatedTask, conflicts);
-                if (!proceed) return;
-            }
-
-            // If no conflict or user proceeds
-            const result = await updateTask(taskToEdit._id, updatedTask, token);
-            if (result._id) {
-                setTasks(prevTasks =>
-                    prevTasks.map(task =>
-                        task._id === taskToEdit._id ? result : task
-                    )
-                );
-                setEditingTask(null);
-            } else {
-                Alert.alert('Error', result.error || 'Failed to update task');
-            }
-        } catch (error) {
-            console.error('Save error:', error);
-            Alert.alert('Error', 'Failed to save changes');
-        }
-    };
-
-    const handleDeleteTask = async () => {
-        const taskToDelete = editingTask;
-        if (!taskToDelete) return;
-        const result = await deleteTask(taskToDelete._id, token);
-        if (result.success) {
-            setTasks((prevTasks) =>
-                prevTasks.filter((task) => task._id !== taskToDelete._id)
-            );
-            setEditingTask(null);
-        } else {
-            Alert.alert('Error', result.error || 'Failed to delete task');
-        }
+        const date = new Date(dateStr);
+        const year = date.getUTCFullYear();
+        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+        const day = date.getUTCDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const groupTasksByDate = () => {
         const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
-
         const grouped = expandedTasks.reduce((acc, task) => {
             const dateKey = getLocalDateKey(task.date);
             if (!acc[dateKey]) acc[dateKey] = [];
             acc[dateKey].push(task);
             return acc;
         }, {});
-
         return Object.entries(grouped)
             .sort((a, b) => new Date(a[0]) - new Date(b[0]))
             .map(([date, items]) => ({
@@ -547,28 +466,348 @@ export default function CalendarScreen() {
             }));
     };
 
-    const getMarkedDates = () => {
-        const todayKey = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-        const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
+    const handleAddTask = async () => {
+        if (!taskInput.trim()) return;
+        try {
+            console.log(`Parsing input: "${taskInput.trim()}"`);
+            const details = await parseTaskDetails(taskInput.trim());
+            console.log("Parsed details:", details);
 
+            const { category, scheduled_date, scheduled_time, duration, recurrence, text_content } = details;
+
+            if (!scheduled_date || !/^\d{4}-\d{2}-\d{2}$/.test(scheduled_date)) {
+                Alert.alert("Invalid Input", `Could not determine a valid date (YYYY-MM-DD) from input. Found: ${scheduled_date || 'None'}`);
+                console.error("Invalid scheduled_date format:", scheduled_date);
+                return;
+            }
+            if (!scheduled_time || !/^\d{2}:\d{2}$/.test(scheduled_time)) {
+                Alert.alert("Invalid Input", `Could not determine a valid time (HH:MM) from input. Found: ${scheduled_time || 'None'}`);
+                console.error("Invalid scheduled_time format:", scheduled_time);
+                return;
+            }
+
+            const [yearStr, monthStr, dayStr] = scheduled_date.split('-');
+            const [hourStr, minuteStr] = scheduled_time.split(':');
+
+            const year = Number(yearStr);
+            const month = Number(monthStr);
+            const day = Number(dayStr);
+            const hour = Number(hourStr);
+            const minute = Number(minuteStr);
+
+            if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+                Alert.alert("Invalid Input", "Parsed date or time components are not valid numbers.");
+                console.error("NaN component(s):", { year, month, day, hour, minute });
+                return;
+            }
+            if (month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 || minute < 0 || minute > 59 || year < 1900 || year > 2100) {
+                Alert.alert("Invalid Date/Time Range", "The parsed date or time seems incorrect (e.g., invalid month, day, hour).");
+                console.error("Basic range validation failed:", { year, month, day, hour, minute });
+                return;
+            }
+
+            if (!isValidDate(year, month, day)) {
+                Alert.alert("Invalid Date", `The date ${year}-${monthStr}-${dayStr} does not exist.`);
+                console.error("isValidDate check failed for:", { year, month, day });
+                return;
+            }
+
+            const taskDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+            if (isNaN(taskDateUTC.getTime())) {
+                Alert.alert("Internal Error", "Failed to create date object even after validation.");
+                console.error("Internal Error: new Date() resulted in Invalid Date:", { year, month, day, hour, minute });
+                return;
+            }
+            const newTaskDateISO = taskDateUTC.toISOString();
+
+            const normalizedDur = normalizeDuration(duration);
+
+            let taskData = {
+                text: text_content || taskInput.trim(),
+                time: normalizedDur,
+                date: newTaskDateISO,
+                recurrence: recurrence || { type: 'none' },
+                isRecurring: recurrence && recurrence.type !== 'none',
+                predicted: details.predicted_duration != null
+            };
+
+            if (category === 'MANUAL') {
+                setCurrentTask(taskData);
+                setShowCategoryModal(true);
+            } else {
+                taskData.category = category;
+                await processAndAddTask(taskData);
+                setTaskInput('');
+            }
+        } catch (error) {
+            console.error("Error parsing/adding task:", error, error.stack);
+            Alert.alert('Error', `Failed to process task: ${error.message}`);
+        }
+    };
+
+    const handleManualCategory = async (selectedCategory) => {
+        if (!currentTask) return;
+
+        const taskWithCategory = {
+            ...currentTask,
+            category: selectedCategory,
+        };
+
+        setShowCategoryModal(false);
+        setCurrentTask(null);
+        await processAndAddTask(taskWithCategory);
+        setTaskInput('');
+    };
+
+    const processAndAddTask = async (newTaskData) => {
+        try {
+            const conflicts = await getConflictingTasks(new Date(newTaskData.date), newTaskData.time, tasks);
+
+            if (conflicts.length > 0) {
+                const decision = await showConflictsAlert(newTaskData, conflicts);
+
+                if (decision === "cancel") {
+                    return;
+                } else if (decision === "smart") {
+                    const smartAlignedTask = await smartAlignTask(newTaskData, tasks);
+                    if (smartAlignedTask) {
+                        newTaskData = smartAlignedTask;
+                    } else {
+                        return;
+                    }
+                }
+            }
+
+            const result = await addTask(newTaskData, token);
+            if (result && result._id) {
+                setTasks((prev) => [...prev, result].sort((a, b) => new Date(a.date) - new Date(b.date)));
+            } else {
+                Alert.alert('Error', result?.error || 'Failed to add task to database');
+            }
+        } catch (error) {
+            console.error("Error processing/adding task:", error);
+            Alert.alert('Error', `An unexpected error occurred: ${error.message}`);
+        }
+    };
+
+    const handleEditTask = (task) => {
+        setEditingTask(task);
+        setEditTaskInput(task.text);
+        setEditCategory(task.category);
+
+        const taskDateUTCBased = new Date(task.date);
+
+        const localYear = taskDateUTCBased.getFullYear();
+        const localMonth = taskDateUTCBased.getMonth();
+        const localDay = taskDateUTCBased.getDate();
+        const localHour = taskDateUTCBased.getHours();
+        const localMinute = taskDateUTCBased.getMinutes();
+
+        const utcYearForCalendar = taskDateUTCBased.getUTCFullYear();
+        const utcMonthForCalendar = (taskDateUTCBased.getUTCMonth() + 1).toString().padStart(2, '0');
+        const utcDayForCalendar = taskDateUTCBased.getUTCDate().toString().padStart(2, '0');
+        setEditDate(`${utcYearForCalendar}-${utcMonthForCalendar}-${utcDayForCalendar}`);
+
+        const initialPickerTime = new Date(
+            localYear,
+            localMonth,
+            localDay,
+            localHour+4,
+            localMinute,
+            0,
+            0
+        );
+
+        console.log("--- Editing Task (Revised Initialization) ---");
+        console.log("Original UTC ISO:", task.date);
+        console.log("Parsed Original Date Object:", taskDateUTCBased.toString());
+        console.log("Derived Local Components:", { localYear, localMonth, localDay, localHour, localMinute });
+        console.log("Constructed initialPickerTime Object:", initialPickerTime.toString());
+        console.log("Calendar Date String Set To:", editDate);
+
+        setEditTime(initialPickerTime);
+
+        const taskDuration = task.completionTime || task.time || '01:00';
+        setEditDuration(taskDuration);
+        const [h, m] = (task.time || '01:00').split(':').map(Number);
+        setTempDurationHours(h.toString());
+        setTempDurationMinutes(m.toString().padStart(2, '0'));
+
+        setRecurrenceType(task.recurrence?.type || 'none');
+        setRecurrenceDays(task.recurrence?.daysOfWeek || []);
+        setRecurrenceInterval(task.recurrence?.interval || 1);
+        setRecurrenceEndType(task.recurrence?.endType || 'never');
+
+        let initialRecurrenceEndDate = new Date();
+        if (task.recurrence?.endDate) {
+            try {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(task.recurrence.endDate)) {
+                    const [rYear, rMonth, rDay] = task.recurrence.endDate.split('-').map(Number);
+                    initialRecurrenceEndDate = new Date(Date.UTC(rYear, rMonth - 1, rDay));
+                } else {
+                    const parsedDate = new Date(task.recurrence.endDate);
+                    if (!isNaN(parsedDate.getTime())) {
+                        initialRecurrenceEndDate = parsedDate;
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing recurrence end date:", task.recurrence.endDate, e);
+            }
+        }
+        setRecurrenceEndDate(initialRecurrenceEndDate);
+        setRecurrenceOccurrences(task.recurrence?.occurrences || null);
+    };
+
+    const onEditDateSelect = (day) => {
+        setEditDate(day.dateString);
+    };
+
+    const onEditTimeChange = (event, selectedDate) => {
+        const currentDate = selectedDate || editTime;
+        setShowEditTimePicker(Platform.OS === 'ios');
+        setEditTime(currentDate);
+    };
+
+    const onEditDurationChange = () => {
+        const hours = parseInt(tempDurationHours, 10) || 0;
+        const minutes = parseInt(tempDurationMinutes, 10) || 0;
+        const formatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        setEditDuration(formatted);
+        setShowDurationPicker(false);
+    };
+
+    const saveEditedTask = async () => {
+        const taskToEdit = editingTask;
+        if (!taskToEdit) return;
+
+        const [year, month, day] = editDate.split('-').map(Number);
+
+        const hour = editTime.getHours();
+        const minute = editTime.getMinutes();
+
+        const updatedDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+
+        const duration = `${tempDurationHours.padStart(2,'0')}:${tempDurationMinutes.padStart(2,'0')}`;
+
+        if (isNaN(updatedDateUTC.getTime())) {
+            Alert.alert("Invalid Date/Time", "Please ensure the date and time are set correctly after combining.");
+            console.error("Failed to construct valid Date object from:", { year, month, day, hour, minute });
+            return;
+        }
+
+        const finalDateISO = updatedDateUTC.toISOString();
+        console.log("--- Saving Edited Task ---");
+        console.log("Selected Date String:", editDate);
+        console.log("Selected Time State (Local):", editTime.toString());
+        console.log("Constructed UTC Date:", updatedDateUTC.toString());
+        console.log("Final ISO String to save:", finalDateISO);
+
+        let updatedTaskData = {
+            ...taskToEdit,
+            text: editTaskInput,
+            date: finalDateISO,
+            category: editCategory,
+            time: editDuration,
+            completionTime: editDuration,
+            recurrence: recurrenceType !== 'none' ? {
+                type: recurrenceType,
+                daysOfWeek: (recurrenceType === 'weekly' || recurrenceType === 'custom') ? recurrenceDays : undefined,
+                interval: recurrenceInterval >= 1 ? recurrenceInterval : 1,
+                endType: recurrenceEndType,
+                endDate: recurrenceEndType === 'date' ? (recurrenceEndDate ? new Date(Date.UTC(recurrenceEndDate.getFullYear(), recurrenceEndDate.getMonth(), recurrenceEndDate.getDate())).toISOString().split('T')[0] : undefined) : undefined,
+                occurrences: recurrenceEndType === 'count' ? (recurrenceOccurrences > 0 ? recurrenceOccurrences : undefined) : undefined
+            } : null,
+            isRecurring: recurrenceType !== 'none',
+            predicted: false,
+        };
+
+        try {
+            const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
+            const conflicts = await getConflictingTasks(updatedDateUTC, updatedTaskData.time, otherTasks);
+
+            if (conflicts.length > 0) {
+                const decision = await showConflictsAlert(updatedTaskData, conflicts);
+                if (decision === "cancel") {
+                    return;
+                } else if (decision === "smart") {
+                    const smartAlignedTask = await smartAlignTask(updatedTaskData, otherTasks);
+                    if (smartAlignedTask) {
+                        updatedTaskData.date = smartAlignedTask.date;
+                        console.log("Smart Align updated date to:", updatedTaskData.date);
+                    } else {
+                        return;
+                    }
+                }
+            }
+
+            const result = await updateTask(taskToEdit._id, updatedTaskData, token);
+            if (result && result._id) {
+                setTasks(prevTasks =>
+                    prevTasks.map(task =>
+                        task._id === taskToEdit._id ? result : task
+                    ).sort((a, b) => new Date(a.date) - new Date(b.date))
+                );
+                setEditingTask(null);
+            } else {
+                Alert.alert('Error', result?.error || 'Failed to update task');
+            }
+        } catch (error) {
+            console.error('Save edited task error:', error);
+            Alert.alert('Error', 'Failed to save changes: ${error.message}');
+        }
+    };
+
+    const handleDeleteTask = async () => {
+        const taskToDelete = editingTask;
+        if (!taskToDelete) return;
+
+        Alert.alert(
+            "Confirm Deletion",
+            `Are you sure you want to delete "${taskToDelete.text}"?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete", style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const result = await deleteTask(taskToDelete._id, token);
+                            if (result.success) {
+                                setTasks((prevTasks) =>
+                                    prevTasks.filter((task) => task._id !== taskToDelete._id)
+                                );
+                                setEditingTask(null);
+                            } else {
+                                Alert.alert('Error', result.error || 'Failed to delete task');
+                            }
+                        } catch (error) {
+                            console.error("Delete task error:", error);
+                            Alert.alert('Error', `Failed to delete task: ${error.message}`);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const getMarkedDates = () => {
+        const todayKey = new Date().toISOString().split('T')[0];
+        const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
         const markedDates = expandedTasks.reduce((acc, task) => {
             const dateKey = getLocalDateKey(task.date);
             acc[dateKey] = {
                 marked: true,
-                dotColor: '#000000', // Blue dot for tasks
+                dotColor: '#007aff',
             };
             return acc;
         }, {});
 
-        // Ensure today is highlighted
         markedDates[todayKey] = {
-            ...markedDates[todayKey], // Preserve any existing markings
+            ...(markedDates[todayKey] || {}),
             customStyles: {
                 container: {
-                    borderColor: '#ff6347', // Red border for today
-                    borderWidth: 2,
-                    borderRadius: 15,
-                    backgroundColor: 'transparent',
+                    borderColor: '#ff6347',
+                    borderWidth: 1.5,
+                    borderRadius: 18,
                 },
                 text: {
                     color: '#ff6347',
@@ -577,19 +816,19 @@ export default function CalendarScreen() {
             },
         };
 
-        // Ensure selected date is highlighted
         if (selectedDate) {
             markedDates[selectedDate] = {
-                ...markedDates[selectedDate], // Preserve any existing markings
+                ...(markedDates[selectedDate] || {}),
+                selected: true,
+                selectedColor: '#007aff',
+                selectedTextColor: '#ffffff',
                 customStyles: {
                     container: {
-                        borderColor: '#007aff', // Blue border for selected date
-                        borderWidth: 2,
-                        borderRadius: 15,
-                        backgroundColor: 'transparent',
+                        backgroundColor: '#007aff',
+                        borderRadius: 18,
                     },
                     text: {
-                        color: '#007aff',
+                        color: '#ffffff',
                         fontWeight: 'bold',
                     },
                 },
@@ -599,20 +838,12 @@ export default function CalendarScreen() {
         return markedDates;
     };
 
-    // For converting HH:MM to total minutes
-    const timeToMinutes = (timeStr) => {
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + m;
-    };
-
-    // Feedback handling
     const handleFeedback = (item) => {
         setFeedbackTask(item);
         setAwaitingCorrection(false);
         setCorrectedDuration("");
         setFeedbackModalVisible(true);
     };
-
     const submitFeedback = async (isAccurate) => {
         if (!feedbackTask) return;
         const predictedMinutes = timeToMinutes(feedbackTask.time);
@@ -634,17 +865,16 @@ export default function CalendarScreen() {
             return;
         }
 
-        // Send feedback to backend
         try {
             const response = await fetch('https://align-cvy6.onrender.com/ml/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: feedbackTask.user.toString(), // Ensure string format
+                    userId: feedbackTask.user.toString(),
                     category: feedbackTask.category,
                     predicted_duration: predictedMinutes,
                     user_duration: userDuration,
-                    taskId: feedbackTask._id.toString() // Explicit string conversion
+                    taskId: feedbackTask._id.toString()
                 }),
             });
             const data = await response.json();
@@ -653,7 +883,6 @@ export default function CalendarScreen() {
             console.error('Feedback error:', error);
         }
 
-        // Update the task in DB and local state
         const result = await updateTask(feedbackTask._id, updatedTask, token);
         if (result._id) {
             setTasks(prevTasks =>
@@ -666,92 +895,6 @@ export default function CalendarScreen() {
         setFeedbackModalVisible(false);
         setFeedbackTask(null);
     };
-
-    const renderTaskItem = ({ item }) => (
-        <TouchableOpacity onPress={() => handleEditTask(item)}>
-            <View style={styles.taskItem}>
-                <Text style={styles.taskText}>{item.text}</Text>
-                <View style={styles.timeRangeContainer}>
-                    <Text style={styles.timeRangeText}>
-                        🕒 {formatTaskTime(item.date)}
-                    </Text>
-                    <Text style={styles.timeRangeText}>
-                        → 🕒 {calculateEndTime(item.date, item.completionTime || item.time)}
-                    </Text>
-                </View>
-                <View style={styles.taskDetails}>
-                    <Text
-                        style={[
-                            styles.categoryLabel,
-                            { backgroundColor: getCategoryColor(item.category) }
-                        ]}
-                    >
-                        {item.category.toLowerCase()}
-                    </Text>
-                    <Text style={styles.timeText}>
-                        ⏱ {formatDuration(item.completionTime || item.time)}
-                    </Text>
-                    {item.predicted && (
-                        <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 Predicted</Text>
-                    )}
-                </View>
-                {item.predicted && (
-                    <TouchableOpacity
-                        style={styles.feedbackTriggerButton}
-                        onPress={() => handleFeedback(item)}
-                    >
-                        <Text style={styles.feedbackTriggerButtonText}>Was Align AI accurate?</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
-
-    const renderTasks = () => {
-        switch (activeView) {
-            case 'tasks':
-                return (
-                    <AddTaskTab
-                        taskInput={taskInput}
-                        setTaskInput={setTaskInput}
-                        handleAddTask={handleAddTask}
-                        tasks={tasks}
-                        renderTaskItem={renderTaskItem}
-                    />
-                );
-            case 'list':
-                return (
-                    <ListViewTab
-                        groupTasksByDate={groupTasksByDate}
-                        renderTaskItem={renderTaskItem}
-                    />
-                );
-            case 'calendar':
-                return (
-                    <CalendarViewTab
-                        getMarkedDates={getMarkedDates}
-                        setSelectedDate={setSelectedDate}
-                        selectedDate={selectedDate}
-                        tasks={tasks.flatMap(task => generateRecurringTasks(task))}  // Pass expanded tasks
-                        renderTaskItem={renderTaskItem}
-                        getLocalDateKey={getLocalDateKey}
-                    />
-                );
-        }
-    };
-
-    const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        if (feedbackModalVisible) {
-            Animated.timing(feedbackModalOpacity, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [feedbackModalVisible]);
-
     const renderFeedbackModal = () => (
         <Modal visible={feedbackModalVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
@@ -820,171 +963,350 @@ export default function CalendarScreen() {
         </Modal>
     );
 
+    // --- Render Recurrence End Condition Picker Modal ---
+    const renderRecurrenceEndTypePicker = () => (
+        <Modal visible={showRecurrenceEndTypePicker} transparent animationType="slide">
+            <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
+                <View style={styles.pickerModalContent}>
+                    <View style={styles.pickerHeader}>
+                        <Text style={styles.pickerTitle}>End Condition</Text>
+                        <TouchableOpacity onPress={() => setShowRecurrenceEndTypePicker(false)}>
+                            <Text style={styles.pickerDoneButton}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Picker
+                        selectedValue={recurrenceEndType}
+                        onValueChange={(value) => {
+                            setRecurrenceEndType(value);
+                            if (value === 'date') setRecurrenceOccurrences(null);
+                            if (value === 'count') setRecurrenceEndDate(new Date());
+                            if (value === 'never') {
+                                setRecurrenceOccurrences(null);
+                                setRecurrenceEndDate(new Date());
+                            }
+                        }}
+                    >
+                        <Picker.Item label="Never Ends" value="never" />
+                        <Picker.Item label="Ends On Date" value="date" />
+                        <Picker.Item label="Ends After Occurrences" value="count" />
+                    </Picker>
+                </View>
+            </View>
+        </Modal>
+    );
+
+    // --- Other Modals (Category Picker, Duration Picker, etc.) ---
+
+    // Duration Picker Modal with updated bottom-up style
+    const renderDurationPicker = () => (
+        <Modal visible={showDurationPicker} transparent animationType="slide">
+            <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
+                <View style={styles.pickerModalContent}>
+                    <View style={styles.pickerHeader}>
+                        <Text style={styles.pickerTitle}>Set Duration</Text>
+                        <TouchableOpacity onPress={onEditDurationChange}>
+                            <Text style={styles.pickerDoneButton}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                        <Picker
+                            selectedValue={tempDurationHours.toString()}
+                            style={{ height: 150, width: 100 }}
+                            onValueChange={(itemValue) => setTempDurationHours(itemValue)}
+                        >
+                            {Array.from({ length: 24 }, (_, i) => i.toString()).map(hour => (
+                                <Picker.Item key={`h-${hour}`} label={hour} value={hour} />
+                            ))}
+                        </Picker>
+                        <Text style={styles.pickerLabel}>hr</Text>
+                        <Picker
+                            selectedValue={tempDurationMinutes.toString().padStart(2, '0')}
+                            style={{ height: 150, width: 100 }}
+                            onValueChange={(itemValue) => setTempDurationMinutes(itemValue)}
+                        >
+                            {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2,'0')).map(min => (
+                                <Picker.Item key={`m-${min}`} label={min} value={min} />
+                            ))}
+                        </Picker>
+                        <Text style={styles.pickerLabel}>min</Text>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+
+    // Category Picker Modal with updated bottom-up style
+    // (For editing task category)
+    // It now uses the same overlay style as the recurrence modals.
+    // ----------------------------------------
+    // Note: This is separate from the manual category modal shown at the very beginning.
+    // ----------------------------------------
+    // When the user taps the category selection button in the edit modal.
+    // ----------------------------------------
+    // The modal slides from the bottom.
+    // ----------------------------------------
+    <Modal visible={showCategoryPicker} transparent animationType="slide">
+        <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
+            <View style={styles.pickerModalContent}>
+                <View style={styles.pickerHeader}>
+                    <Text style={styles.pickerTitle}>Select Category</Text>
+                    <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                        <Text style={styles.pickerDoneButton}>Done</Text>
+                    </TouchableOpacity>
+                </View>
+                <Picker
+                    selectedValue={editCategory}
+                    onValueChange={(itemValue) => setEditCategory(itemValue)}
+                >
+                    {categories.map((cat) => (
+                        <Picker.Item key={cat} label={cat} value={cat} />
+                    ))}
+                </Picker>
+            </View>
+        </View>
+    </Modal>;
+
+    const renderTaskItem = ({ item }) => (
+        <TouchableOpacity onPress={() => handleEditTask(item)}>
+            <View style={styles.taskItem}>
+                <Text style={styles.taskText}>{item.text}</Text>
+                <View style={styles.timeRangeContainer}>
+                    <Text style={styles.timeRangeText}>
+                        🕒 {formatTaskTime(item.date)}
+                    </Text>
+                    {item.time !== 'DEFAULT' && (
+                        <Text style={styles.timeRangeText}>
+                            → {calculateEndTime(item.date, item.time)}
+                        </Text>
+                    )}
+                </View>
+                <View style={styles.taskDetails}>
+                    <Text
+                        style={[
+                            styles.categoryLabel,
+                            { backgroundColor: item.category === 'SLEEP' ? '#000000' : getCategoryColor(item.category) }
+                        ]}
+                    >
+                        {item.category?.toLowerCase() || 'other'}
+                    </Text>
+                    <Text style={styles.timeText}>
+                        ⏱ {formatDuration(item.completionTime || item.time)}
+                    </Text>
+                    {item.predicted && (
+                        <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 AI</Text>
+                    )}
+                </View>
+                {item.predicted && item.category !== 'SLEEP' && (
+                    <TouchableOpacity
+                        style={styles.feedbackTriggerButton}
+                        onPress={() => handleFeedback(item)}
+                    >
+                        <Text style={styles.feedbackTriggerButtonText}>Was AI duration right?</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </TouchableOpacity>
+    );
+
+    const renderTasks = () => {
+        switch (activeView) {
+            case 'tasks':
+                return (
+                    <AddTaskTab
+                        taskInput={taskInput}
+                        setTaskInput={setTaskInput}
+                        handleAddTask={handleAddTask}
+                        tasks={tasks}
+                        renderTaskItem={renderTaskItem}
+                    />
+                );
+            case 'list':
+                return (
+                    <ListViewTab
+                        groupTasksByDate={groupTasksByDate}
+                        renderTaskItem={renderTaskItem}
+                    />
+                );
+            case 'calendar':
+                return (
+                    <CalendarViewTab
+                        getMarkedDates={getMarkedDates}
+                        setSelectedDate={setSelectedDate}
+                        selectedDate={selectedDate}
+                        tasks={tasks.flatMap(task => generateRecurringTasks(task))}
+                        renderTaskItem={renderTaskItem}
+                        getLocalDateKey={getLocalDateKey}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <View style={styles.container}>
-            {/* Category selection modal */}
-            <Modal visible={showCategoryModal} transparent={true}>
+            <Modal visible={showCategoryModal} transparent={true} animationType="fade">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Select Category</Text>
-                        {categories.map((cat) => (
-                            <TouchableOpacity
-                                key={cat}
-                                style={styles.categoryButton}
-                                onPress={() => handleManualCategory(cat)}
-                            >
-                                <Text style={styles.categoryText}>{cat}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        <ScrollView>
+                            {categories.map((cat) => (
+                                <TouchableOpacity
+                                    key={cat}
+                                    style={styles.categoryButton}
+                                    onPress={() => handleManualCategory(cat)}
+                                >
+                                    <Text style={styles.categoryText}>{cat}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity
+                            style={[styles.categoryButton, { backgroundColor: '#ccc', marginTop: 10 }]}
+                            onPress={() => {
+                                setShowCategoryModal(false);
+                                setCurrentTask(null);
+                            }}
+                        >
+                            <Text style={[styles.categoryText, { color: '#333' }]}>Cancel</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
 
-            {/* Task editing modal */}
-            <Modal visible={editingTask !== null} transparent={true}>
+            <Modal visible={editingTask !== null} transparent={true} animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.editModalContent}>
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={() => setEditingTask(null)}
-                            hitSlop={{ top: 100, bottom: 100, left: 100, right: 100 }}
+                            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                         >
                             <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
-                        <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+                        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
                             <Text style={styles.modalTitle}>Edit Task</Text>
-                            <Text style={styles.label}>Original Input</Text>
+                            <Text style={styles.label}>Task Description</Text>
                             <TextInput
                                 style={styles.input}
                                 value={editTaskInput}
                                 onChangeText={setEditTaskInput}
-                                placeholder="Edit your task text here"
+                                placeholder="Edit task description"
                             />
 
-                            {/* Recurrence Settings */}
                             <View style={styles.recurrenceContainer}>
-                                <Text style={styles.sectionTitle}>Recurrence Settings</Text>
+                                <Text style={styles.sectionTitle}>Recurrence</Text>
+                                <TouchableOpacity
+                                    style={styles.selectionButton}
+                                    onPress={() => setShowRecurrenceTypePicker(true)}
+                                >
+                                    <Text style={styles.selectionButtonText}>
+                                        {recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
+                                    </Text>
+                                    <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                </TouchableOpacity>
 
-                                {/* Always show pattern selector */}
-                                <View style={styles.recurrenceRow}>
-                                    <TouchableOpacity
-                                        style={styles.selectionButton}
-                                        onPress={() => setShowRecurrenceTypePicker(true)}
-                                    >
-                                        <Text style={styles.selectionButtonText}>
-                                            {recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
-                                        </Text>
-                                        <Text style={styles.selectionButtonIcon}>⌄</Text>
-                                    </TouchableOpacity>
+                                <Modal visible={showRecurrenceTypePicker} transparent animationType="slide">
+                                    <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
+                                        <View style={styles.pickerModalContent}>
+                                            <View style={styles.pickerHeader}>
+                                                <Text style={styles.pickerTitle}>Repeat Pattern</Text>
+                                                <TouchableOpacity onPress={() => setShowRecurrenceTypePicker(false)}>
+                                                    <Text style={styles.pickerDoneButton}>Done</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                            <Picker
+                                                selectedValue={recurrenceType}
+                                                onValueChange={(value) => {
+                                                    setRecurrenceType(value);
+                                                    if (value === 'none') setRecurrenceEndType('never');
+                                                }}
+                                            >
+                                                <Picker.Item label="No Recurrence" value="none" />
+                                                <Picker.Item label="Daily" value="daily" />
+                                                <Picker.Item label="Weekly" value="weekly" />
+                                                <Picker.Item label="Monthly" value="monthly" />
+                                                <Picker.Item label="Yearly" value="yearly" />
+                                            </Picker>
+                                        </View>
+                                    </View>
+                                </Modal>
 
-                                    {/* Only show frequency input when recurrence is active */}
-                                    {recurrenceType !== 'none' && (
-                                        <TextInput
-                                            style={styles.recurrenceInput}
-                                            keyboardType="numeric"
-                                            value={recurrenceInterval ? String(recurrenceInterval) : ""}
-                                            onChangeText={t => {
-                                                const value = parseInt(t) || 0;
-                                                setRecurrenceInterval(value);
-                                            }}
-                                            placeholder={
-                                                `Ex. Every # ${{
-                                                    daily: 'days',
-                                                    weekly: 'weeks',
-                                                    monthly: 'months',
-                                                    yearly: 'years',
-                                                    custom: 'days'
-                                                }[recurrenceType]}`
-                                            }
-                                            placeholderTextColor="#8e8e93"
-                                        />
-                                    )}
-                                </View>
+                                {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
+                                    <View style={styles.formGroup}>
+                                        <Text style={styles.label}>Repeat On</Text>
+                                        <View style={styles.daysGrid}>
+                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                                <TouchableOpacity
+                                                    key={day}
+                                                    style={[
+                                                        styles.dayButton,
+                                                        recurrenceDays.includes(index) && styles.selectedDay,
+                                                    ]}
+                                                    onPress={() => {
+                                                        const updated = recurrenceDays.includes(index)
+                                                            ? recurrenceDays.filter((d) => d !== index)
+                                                            : [...recurrenceDays, index].sort((a, b) => a - b);
+                                                        setRecurrenceDays(updated);
+                                                    }}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.dayText,
+                                                            recurrenceDays.includes(index) && styles.selectedDayText,
+                                                        ]}
+                                                    >
+                                                        {day}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
 
-                                {/* Only show other recurrence controls when recurrence is active */}
                                 {recurrenceType !== 'none' && (
                                     <>
-                                        {/* End Condition */}
+                                        <Text style={styles.label}>Ends</Text>
                                         <TouchableOpacity
                                             style={styles.selectionButton}
                                             onPress={() => setShowRecurrenceEndTypePicker(true)}
                                         >
                                             <Text style={styles.selectionButtonText}>
-                                                {recurrenceEndType === 'never' && 'Never Ends'}
-                                                {recurrenceEndType === 'date' && `Until ${recurrenceEndDate ? recurrenceEndDate.toDateString() : 'Select Date'}`}
-                                                {recurrenceEndType === 'count' && `After ${recurrenceOccurrences || '#'} occurrences`}
+                                                {recurrenceEndType === 'never' && 'Never'}
+                                                {recurrenceEndType === 'date' &&
+                                                    `On ${recurrenceEndDate ? recurrenceEndDate.toLocaleDateString() : 'Select Date'}`}
+                                                {recurrenceEndType === 'count' &&
+                                                    `After ${recurrenceOccurrences || '#'} occurrences`}
                                             </Text>
                                             <Text style={styles.selectionButtonIcon}>⌄</Text>
                                         </TouchableOpacity>
-
                                         {recurrenceEndType === 'date' && (
                                             <DateTimePicker
                                                 value={recurrenceEndDate || new Date()}
                                                 mode="date"
                                                 display="default"
+                                                minimumDate={new Date()}
                                                 onChange={(event, date) => {
-                                                    if (date) {
-                                                        setRecurrenceEndDate(date);
-                                                    }
+                                                    if (date) setRecurrenceEndDate(date);
                                                 }}
                                             />
                                         )}
-
                                         {recurrenceEndType === 'count' && (
                                             <TextInput
-                                                style={styles.input}
+                                                style={[styles.input, { marginTop: 5 }]}
                                                 keyboardType="numeric"
-                                                placeholder="Number of recurrences"
+                                                placeholder="Number of times"
                                                 value={recurrenceOccurrences ? String(recurrenceOccurrences) : ""}
-                                                onChangeText={t => {
-                                                    const num = parseInt(t);
-                                                    // Allow empty input but ensure minimum value is 1 when entered
-                                                    setRecurrenceOccurrences(t === "" ? null : Math.max(1, num || 1));
-                                                }}
+                                                onChangeText={(t) =>
+                                                    setRecurrenceOccurrences(t === "" ? null : Math.max(1, parseInt(t) || 1))
+                                                }
                                                 placeholderTextColor="#8e8e93"
                                             />
-                                        )}
-
-                                        {/* Repeat On Days */}
-                                        {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
-                                            <View style={styles.formGroup}>
-                                                <Text style={styles.label}>Repeat On Days</Text>
-                                                <View style={styles.daysGrid}>
-                                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                                                        <TouchableOpacity
-                                                            key={day}
-                                                            style={[
-                                                                styles.dayButton,
-                                                                recurrenceDays.includes(index) && styles.selectedDay
-                                                            ]}
-                                                            onPress={() => {
-                                                                const updatedDays = [...recurrenceDays];
-                                                                const dayIndex = updatedDays.indexOf(index);
-                                                                if (dayIndex === -1) {
-                                                                    updatedDays.push(index);
-                                                                } else {
-                                                                    updatedDays.splice(dayIndex, 1);
-                                                                }
-                                                                setRecurrenceDays(updatedDays.sort((a, b) => a - b));
-                                                            }}
-                                                        >
-                                                            <Text style={[
-                                                                styles.dayText,
-                                                                recurrenceDays.includes(index) && styles.selectedDayText
-                                                            ]}>
-                                                                {day}
-                                                            </Text>
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                </View>
-                                            </View>
                                         )}
                                     </>
                                 )}
                             </View>
 
                             <Text style={styles.label}>Category</Text>
-                            {/* Category Picker Trigger (Modal Dropdown) */}
                             <TouchableOpacity
                                 style={styles.selectionButton}
                                 onPress={() => setShowCategoryPicker(true)}
@@ -992,12 +1314,8 @@ export default function CalendarScreen() {
                                 <Text style={styles.selectionButtonText}>{editCategory}</Text>
                                 <Text style={styles.selectionButtonIcon}>⌄</Text>
                             </TouchableOpacity>
-                            <Modal
-                                visible={showCategoryPicker}
-                                transparent
-                                animationType="slide"
-                            >
-                                <View style={styles.pickerModalOverlay}>
+                            <Modal visible={showCategoryPicker} transparent animationType="slide">
+                                <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
                                     <View style={styles.pickerModalContent}>
                                         <View style={styles.pickerHeader}>
                                             <Text style={styles.pickerTitle}>Select Category</Text>
@@ -1008,7 +1326,6 @@ export default function CalendarScreen() {
                                         <Picker
                                             selectedValue={editCategory}
                                             onValueChange={(itemValue) => setEditCategory(itemValue)}
-                                            style={{}}
                                         >
                                             {categories.map((cat) => (
                                                 <Picker.Item key={cat} label={cat} value={cat} />
@@ -1018,145 +1335,63 @@ export default function CalendarScreen() {
                                 </View>
                             </Modal>
 
-                            {/* Recurrence Type Picker Modal */}
-                            <Modal visible={showRecurrenceTypePicker} transparent animationType="slide">
-                                <View style={styles.pickerModalOverlay}>
-                                    <View style={styles.pickerModalContent}>
-                                        <View style={styles.pickerHeader}>
-                                            <Text style={styles.pickerTitle}>Repeat Pattern</Text>
-                                            <TouchableOpacity onPress={() => setShowRecurrenceTypePicker(false)}>
-                                                <Text style={styles.pickerDoneButton}>Done</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                        <Picker
-                                            selectedValue={recurrenceType}
-                                            onValueChange={(value) => {
-                                                setRecurrenceType(value);
-                                                if (value !== 'weekly' && value !== 'custom') {
-                                                    setRecurrenceDays([]);
-                                                }
-                                            }}
-                                        >
-                                            <Picker.Item label="No Recurrence" value="none" />
-                                            <Picker.Item label="Daily" value="daily" />
-                                            <Picker.Item label="Weekly" value="weekly" />
-                                            <Picker.Item label="Monthly" value="monthly" />
-                                            <Picker.Item label="Yearly" value="yearly" />
-                                            <Picker.Item label="Custom Days" value="custom" />
-                                        </Picker>
-                                    </View>
-                                </View>
-                            </Modal>
-
-                            {/* End Type Picker Modal */}
-                            <Modal visible={showRecurrenceEndTypePicker} transparent animationType="slide">
-                                <View style={styles.pickerModalOverlay}>
-                                    <View style={styles.pickerModalContent}>
-                                        <View style={styles.pickerHeader}>
-                                            <Text style={styles.pickerTitle}>End Condition</Text>
-                                            <TouchableOpacity onPress={() => setShowRecurrenceEndTypePicker(false)}>
-                                                <Text style={styles.pickerDoneButton}>Done</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                        <Picker
-                                            selectedValue={recurrenceEndType}
-                                            onValueChange={setRecurrenceEndType}
-                                        >
-                                            <Picker.Item label="Never Ends" value="never" />
-                                            <Picker.Item label="Ends On Date" value="date" />
-                                            <Picker.Item label="Ends After Occurrences" value="count" />
-                                        </Picker>
-                                    </View>
-                                </View>
-                            </Modal>
-
-                            <Text style={styles.label}>Select Date</Text>
+                            <Text style={styles.label}>Date</Text>
                             <Calendar
                                 current={editDate}
-                                onDayPress={handleDateSelect}
+                                onDayPress={onEditDateSelect}
                                 markedDates={{
-                                    [editDate]: { selected: true },
+                                    [editDate]: {
+                                        selected: true,
+                                        selectedColor: '#007aff',
+                                        selectedTextColor: 'white',
+                                    },
                                 }}
-                                theme={{
-                                    todayTextColor: '#007aff',
-                                    selectedDayBackgroundColor: '#007aff',
-                                    arrowColor: '#007aff',
-                                }}
+                                theme={styles.calendarTheme}
                             />
 
                             <Text style={styles.label}>Scheduled Time</Text>
-                            {/* ORIGINAL INLINE Scheduled Time Pickers */}
-                            <View style={styles.timePickerContainer}>
-                                <View style={styles.pickerColumn}>
-                                    <Text style={styles.pickerLabel}>Hours</Text>
-                                    <Picker
-                                        selectedValue={editHour}
-                                        style={{ height: 200, width: 100 }}
-                                        onValueChange={(itemValue) => setEditHour(itemValue)}
-                                        mode="dropdown"
-                                    >
-                                        {Array.from({ length: 12 }, (_, i) => (
-                                            <Picker.Item key={i + 1} label={(i + 1).toString()} value={(i + 1).toString()} />
-                                        ))}
-                                    </Picker>
-                                </View>
-                                <View style={styles.pickerColumn}>
-                                    <Text style={styles.pickerLabel}>Minutes</Text>
-                                    <Picker
-                                        selectedValue={editMinute}
-                                        style={{ height: 200, width: 100 }}
-                                        onValueChange={(itemValue) => setEditMinute(itemValue)}
-                                        mode="dropdown"
-                                    >
-                                        {Array.from({ length: 60 }, (_, i) => (
-                                            <Picker.Item key={i} label={i.toString().padStart(2, '0')} value={i.toString()} />
-                                        ))}
-                                    </Picker>
-                                </View>
-                                <View style={styles.pickerColumn}>
-                                    <Text style={styles.pickerLabel}>AM/PM</Text>
-                                    <Picker
-                                        selectedValue={editAmPm}
-                                        style={{ height: 200, width: 100 }}
-                                        onValueChange={(itemValue) => setEditAmPm(itemValue)}
-                                        mode="dropdown"
-                                    >
-                                        <Picker.Item label="AM" value="AM" />
-                                        <Picker.Item label="PM" value="PM" />
-                                    </Picker>
-                                </View>
-                            </View>
+                            <TouchableOpacity
+                                style={styles.selectionButton}
+                                onPress={() => setShowEditTimePicker(true)}
+                            >
+                                <Text style={styles.selectionButtonText}>
+                                    {editTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </Text>
+                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                            </TouchableOpacity>
+                            {showEditTimePicker && (
+                                <DateTimePicker
+                                    value={editTime}
+                                    mode="time"
+                                    is24Hour={false}
+                                    display="spinner"
+                                    onChange={onEditTimeChange}
+                                />
+                            )}
+                            {Platform.OS === 'ios' && showEditTimePicker && (
+                                <TouchableOpacity
+                                    style={[styles.actionButton, { backgroundColor: '#ccc', marginVertical: 10 }]}
+                                    onPress={() => setShowEditTimePicker(false)}
+                                >
+                                    <Text style={[styles.actionButtonText, { color: '#000' }]}>Confirm Time</Text>
+                                </TouchableOpacity>
+                            )}
 
-                            <Text style={styles.label}>Completion Time</Text>
-                            {/* ORIGINAL INLINE Completion Time Pickers */}
-                            <View style={styles.timePickerContainer}>
-                                <View style={styles.pickerColumn}>
-                                    <Text style={styles.pickerLabel}>Hours</Text>
-                                    <Picker
-                                        selectedValue={editCompletionHour}
-                                        style={{ height: 200, width: 100 }}
-                                        onValueChange={(itemValue) => setEditCompletionHour(itemValue)}
-                                        mode="dropdown"
-                                    >
-                                        {Array.from({ length: 25 }, (_, i) => (
-                                            <Picker.Item key={i} label={i.toString()} value={i.toString()} />
-                                        ))}
-                                    </Picker>
-                                </View>
-                                <View style={styles.pickerColumn}>
-                                    <Text style={styles.pickerLabel}>Minutes</Text>
-                                    <Picker
-                                        selectedValue={editCompletionMinute}
-                                        style={{ height: 200, width: 100 }}
-                                        onValueChange={(itemValue) => setEditCompletionMinute(itemValue)}
-                                        mode="dropdown"
-                                    >
-                                        {Array.from({ length: 60 }, (_, i) => (
-                                            <Picker.Item key={i} label={i.toString()} value={i.toString()} />
-                                        ))}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <Text style={styles.label}>Duration</Text>
+                            <TouchableOpacity
+                                style={styles.selectionButton}
+                                onPress={() => {
+                                    const [hrs, mins] = editDuration.split(':').map(Number);
+                                    setTempDurationHours(hrs.toString());
+                                    setTempDurationMinutes(mins.toString());
+                                    setShowDurationPicker(true);
+                                }}
+                            >
+                                <Text style={styles.selectionButtonText}>{formatDuration(editDuration)}</Text>
+                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                            </TouchableOpacity>
+                            {renderDurationPicker()}
+                            {renderRecurrenceEndTypePicker()}
 
                             <View style={styles.formActions}>
                                 <TouchableOpacity
@@ -1169,7 +1404,7 @@ export default function CalendarScreen() {
                                     style={[styles.actionButton, styles.deleteButton]}
                                     onPress={handleDeleteTask}
                                 >
-                                    <Text style={styles.actionButtonText}>Delete Task</Text>
+                                    <Text style={styles.actionButtonText}>Delete</Text>
                                 </TouchableOpacity>
                             </View>
                         </ScrollView>
@@ -1177,27 +1412,56 @@ export default function CalendarScreen() {
                 </View>
             </Modal>
 
-            {renderTasks()}
             {renderFeedbackModal()}
+
+            {activeView === 'tasks' ? (
+                <AddTaskTab
+                    taskInput={taskInput}
+                    setTaskInput={setTaskInput}
+                    handleAddTask={handleAddTask}
+                    tasks={tasks}
+                    renderTaskItem={renderTaskItem}
+                />
+            ) : activeView === 'list' ? (
+                <ListViewTab
+                    groupTasksByDate={groupTasksByDate}
+                    renderTaskItem={renderTaskItem}
+                />
+            ) : activeView === 'calendar' ? (
+                <CalendarViewTab
+                    getMarkedDates={getMarkedDates}
+                    setSelectedDate={setSelectedDate}
+                    selectedDate={selectedDate}
+                    tasks={tasks.flatMap((task) => generateRecurringTasks(task))}
+                    renderTaskItem={renderTaskItem}
+                    getLocalDateKey={getLocalDateKey}
+                />
+            ) : null}
 
             <View style={styles.tabBar}>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}
                     onPress={() => setActiveView('tasks')}
                 >
-                    <Text style={styles.tabText}>Manage{'\n'}  Tasks</Text>
+                    <Text style={[styles.tabText, activeView === 'tasks' && styles.activeTabText]}>
+                        Manage Tasks
+                    </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'list' && styles.activeTab]}
                     onPress={() => setActiveView('list')}
                 >
-                    <Text style={styles.tabText}>List View</Text>
+                    <Text style={[styles.tabText, activeView === 'list' && styles.activeTabText]}>
+                        List View
+                    </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tabButton, activeView === 'calendar' && styles.activeTab]}
                     onPress={() => setActiveView('calendar')}
                 >
-                    <Text style={styles.tabText}>Calendar</Text>
+                    <Text style={[styles.tabText, activeView === 'calendar' && styles.activeTabText]}>
+                        Calendar
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

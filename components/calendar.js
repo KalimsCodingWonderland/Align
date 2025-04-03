@@ -28,7 +28,7 @@ const CalendarViewTab = ({
                 }}
                 dayComponent={({ date, state, marking, onPress }) => {
                     const dateStr = date.dateString;
-                    const isToday = dateStr === new Date().toISOString().split('T')[0];
+                    const isToday = dateStr === new Date().toLocaleDateString('en-CA');
                     const isSelected = dateStr === selectedDate;
 
                     let backgroundColor = 'transparent';
