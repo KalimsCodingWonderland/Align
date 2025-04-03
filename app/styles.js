@@ -192,16 +192,17 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
-
-    /*** UPDATED RECURRENCE STYLES ***/
+    // In styles.js
     pickerModalOverlay: {
         flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'flex-end', // Align content at bottom
+        alignItems: 'stretch', // Stretch width
     },
+    // In styles.js
     pickerModalContent: {
         backgroundColor: 'white',
-        borderTopLeftRadius: 24,
+        borderTopLeftRadius: 24, // Rounded top corners
         borderTopRightRadius: 24,
         padding: 20,
         maxHeight: '50%',
@@ -210,6 +211,7 @@ export const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
     },
+    // In styles.js
     pickerHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -217,6 +219,8 @@ export const styles = StyleSheet.create({
         marginBottom: 15,
         paddingHorizontal: 10,
         paddingVertical: 8,
+        borderBottomWidth: 1, // Add separator
+        borderBottomColor: '#f0f0f5',
     },
     pickerTitle: {
         fontSize: 18,
@@ -227,6 +231,11 @@ export const styles = StyleSheet.create({
         color: '#007aff',
         fontSize: 17,
         fontWeight: '600',
+    },
+    // Add to styles.js
+    pickerItem: {
+        fontSize: 18,
+        color: '#1c1c1e',
     },
     selectionButton: {
         flexDirection: 'row',
@@ -296,8 +305,6 @@ export const styles = StyleSheet.create({
     selectedDayText: {
         color: 'white',
     },
-
-    /*** NEWLY ADDED STYLES ***/
     label: {
         fontSize: 14,
         fontWeight: '500',
@@ -333,8 +340,6 @@ export const styles = StyleSheet.create({
         textMonthFontSize: 16,
         textDayHeaderFontSize: 12,
     },
-
-    /*** REMAINING EXISTING STYLES ***/
     scanButton: {
         backgroundColor: '#FF6B6B',
         flexDirection: 'row',
@@ -514,6 +519,12 @@ export const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 16,
         letterSpacing: 0.5,
+    },
+    // NEW: Style for button row that holds the ALIGN PAPER and ALIGN SLEEP buttons
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginVertical: 10,
     },
 });
 

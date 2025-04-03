@@ -4,9 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="#2 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted.">
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted.">
+      <change afterPath="$PROJECT_DIR$/app/alignSleep.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/mlRouting.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mlRouting.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/styles.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/addTask.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/addTask.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/calendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/calendar.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/recurrence.js" beforeDir="false" afterPath="$PROJECT_DIR$/constants/recurrence.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,8 +82,8 @@
       <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\kalim\WebstormProjects\Align\constants" />
       <recent name="C:\Users\kalim\WebstormProjects\Align\components" />
+      <recent name="C:\Users\kalim\WebstormProjects\Align\constants" />
       <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
     </key>
   </component>
@@ -107,7 +116,10 @@
       <workItem from="1742442341874" duration="23000" />
       <workItem from="1742442682393" duration="4001000" />
       <workItem from="1742484827723" duration="27596000" />
-      <workItem from="1742574313839" duration="17872000" />
+      <workItem from="1742574313839" duration="40559000" />
+      <workItem from="1742852645359" duration="3014000" />
+      <workItem from="1743090338714" duration="593000" />
+      <workItem from="1743632854361" duration="24132000" />
     </task>
     <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
       <option name="closed" value="true" />
@@ -477,7 +489,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742592272541</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted.">
+      <option name="closed" value="true" />
+      <created>1742592578084</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1742592578084</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -495,7 +515,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added conflict checking." />
     <MESSAGE value="Made the calendar view sort tasks by time." />
     <MESSAGE value="Trying to implement a random forest regressor for completion time." />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #2" />
@@ -520,6 +539,7 @@
     <MESSAGE value="Fixed Recurrence settings completley. Then Paper Import Broke and I fixed that. Recurrence and Align Paper should work completley now. I also styled the Recurrence settings." />
     <MESSAGE value="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted." />
     <MESSAGE value="#2 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
-    <option name="LAST_COMMIT_MESSAGE" value="#2 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
+    <MESSAGE value="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
+    <option name="LAST_COMMIT_MESSAGE" value="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
   </component>
 </project>
