@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Added Align Sleep: Feature that allows the user to set a sleep schedule so that Align can better schedule to the users patterns. Also added Smart Align, this is a third option that align prompts the user with when a time conflict arises, when chosen, align will take all other tasks and the sleep schedule into acount and will move the conflicting task to the first available slot of time where it fits. The user is still able to override/cancel if they desire.">
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,15 +111,7 @@
       <workItem from="1742852645359" duration="3014000" />
       <workItem from="1743090338714" duration="593000" />
       <workItem from="1743632854361" duration="24477000" />
-      <workItem from="1744322793069" duration="1798000" />
-    </task>
-    <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
-      <option name="closed" value="true" />
-      <created>1742068026186</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1742068026186</updated>
+      <workItem from="1744322793069" duration="5249000" />
     </task>
     <task id="LOCAL-00002" summary="Trying to deploy backend for team access.">
       <option name="closed" value="true" />
@@ -496,7 +489,23 @@
       <option name="project" value="LOCAL" />
       <updated>1743658037475</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="Trying to refine ML model logic #1">
+      <option name="closed" value="true" />
+      <created>1744324881620</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1744324881620</updated>
+    </task>
+    <task id="LOCAL-00050" summary="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task.">
+      <option name="closed" value="true" />
+      <created>1744327075427</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1744327075428</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -514,8 +523,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Trying to implement a random forest regressor for completion time." />
-    <MESSAGE value="Trying to implement a random forest regressor for completion time. #2" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #3" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #4" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #5" />
@@ -539,6 +546,8 @@
     <MESSAGE value="#2 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
     <MESSAGE value="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
     <MESSAGE value="Added Align Sleep: Feature that allows the user to set a sleep schedule so that Align can better schedule to the users patterns. Also added Smart Align, this is a third option that align prompts the user with when a time conflict arises, when chosen, align will take all other tasks and the sleep schedule into acount and will move the conflicting task to the first available slot of time where it fits. The user is still able to override/cancel if they desire." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added Align Sleep: Feature that allows the user to set a sleep schedule so that Align can better schedule to the users patterns. Also added Smart Align, this is a third option that align prompts the user with when a time conflict arises, when chosen, align will take all other tasks and the sleep schedule into acount and will move the conflicting task to the first available slot of time where it fits. The user is still able to override/cancel if they desire." />
+    <MESSAGE value="Trying to refine ML model logic #1" />
+    <MESSAGE value="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task." />
+    <option name="LAST_COMMIT_MESSAGE" value="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task." />
   </component>
 </project>
