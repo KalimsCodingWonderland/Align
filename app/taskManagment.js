@@ -702,6 +702,8 @@ export default function CalendarScreen() {
         console.log("Constructed UTC Date:", updatedDateUTC.toString());
         console.log("Final ISO String to save:", finalDateISO);
 
+        const isRecurringInstance = taskToEdit.originalTask !== undefined;
+
         let updatedTaskData = {
             ...taskToEdit,
             text: editTaskInput,
@@ -740,7 +742,12 @@ export default function CalendarScreen() {
                 }
             }
 
-            const result = await updateTask(taskToEdit._id, updatedTaskData, token);
+            const taskIdToUpdate = isRecurringInstance
+                ? taskToEdit.originalTask
+                : taskToEdit._id;
+
+            const result = await updateTask(taskIdToUpdate, updatedTaskData, token);
+
             if (result && result._id) {
                 setTasks(prevTasks =>
                     prevTasks.map(task =>
@@ -1067,6 +1074,7 @@ export default function CalendarScreen() {
     </Modal>;
 
     const renderTaskItem = ({ item }) => (
+
         <TouchableOpacity onPress={() => handleEditTask(item)}>
             <View style={styles.taskItem}>
                 <Text style={styles.taskText}>{item.text}</Text>
