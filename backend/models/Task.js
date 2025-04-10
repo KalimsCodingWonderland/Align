@@ -9,6 +9,7 @@ const TaskSchema = new mongoose.Schema({
     time: { type: String, required: true }, // Stored in HH:MM format
     date: { type: Date, required: true },
     predicted: { type: Boolean, default: false },
+    deleted: { type: Boolean, default: false },
     recurrence: {
         type: {
             type: String,
