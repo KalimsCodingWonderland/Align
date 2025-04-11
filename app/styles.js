@@ -371,6 +371,19 @@ export const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#8e8e93',
     },
+    reminderContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginVertical: 10,
+    },
+    reminderOffsetContainer: {
+        marginTop: 10,
+    },
+    menuItemText: {
+        fontSize: 16,
+        color: '#007aff',
+    },
     selectedDayText: {
         color: 'white',
     },

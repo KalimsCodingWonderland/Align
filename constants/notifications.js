@@ -1,6 +1,8 @@
 // constants/notifications.js
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getTasks} from "./api";
+import {isSameUTCDate} from "../app/paperImport";
 
 // Call this at app launch to ask for notification permissions.
 export async function registerForPushNotificationsAsync() {
@@ -19,8 +21,8 @@ export async function registerForPushNotificationsAsync() {
 // Schedules (or reschedules) the daily summary notification.
 // reminderTime is a string "HH:mm" (24-hour).
 // tasksCount is used to generate the notification content.
-export async function scheduleDailySummaryNotification(reminderTime, tasksCount) {
-    let [hour, minute] = reminderTime.split(':').map(Number);
+export async function scheduleDailySummaryNotification(reminderTime) {
+    const [hour, minute] = reminderTime.split(':').map(Number);
     const now = new Date();
     let scheduledDate = new Date(now);
     scheduledDate.setHours(hour, minute, 0, 0);
@@ -28,10 +30,17 @@ export async function scheduleDailySummaryNotification(reminderTime, tasksCount)
         // If the time has passed today, schedule for tomorrow.
         scheduledDate.setDate(scheduledDate.getDate() + 1);
     }
+    const token = await AsyncStorage.getItem('token');
+    const today = new Date();
+    const tasks = await getTasks(token);
+    const tasksCount = tasks.filter(task =>
+        isSameUTCDate(new Date(task.date), today)
+    ).length;
+
     const content = {
         title: "Daily Summary",
-        body: `You have ${tasksCount} task${tasksCount === 1 ? "" : "s"} scheduled for today.`,
-        data: { screen: 'Calendar', date: new Date().toISOString().split('T')[0] },
+        body: `You have ${tasksCount} task${tasksCount === 1 ? "" : "s"} scheduled today.`,
+        data: { screen: 'Calendar', date: today.toISOString().split('T')[0] },
     };
     // Set the trigger to fire daily at the specified hour/minute.
     const trigger = {

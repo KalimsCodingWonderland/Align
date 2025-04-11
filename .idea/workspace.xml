@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Added a little settings cog for Logout and Create Account options. Other things can be added here in the future. Also attempting to implement a Push Notification system, one notification that is daily, it should notify the user of how many tasks they have that day, when this notification is clicked it should take the user to the calendar view of that day on align. Also in the edit modal of each individual tasks, users should be able to togle reminders on or off for that task and also set how early before they want the reminder.">
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Removed the notification task properties for now until I get the push notifications feature working.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/styles.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/models/Task.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/Task.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/notifications.js" beforeDir="false" afterPath="$PROJECT_DIR$/constants/notifications.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,23 +114,7 @@
       <workItem from="1742852645359" duration="3014000" />
       <workItem from="1743090338714" duration="593000" />
       <workItem from="1743632854361" duration="24477000" />
-      <workItem from="1744322793069" duration="21047000" />
-    </task>
-    <task id="LOCAL-00008" summary="Trying to host backend for team. #6">
-      <option name="closed" value="true" />
-      <created>1742227177776</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1742227177776</updated>
-    </task>
-    <task id="LOCAL-00009" summary="Trying to host backend for team. #7">
-      <option name="closed" value="true" />
-      <created>1742227730885</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1742227730885</updated>
+      <workItem from="1744322793069" duration="22997000" />
     </task>
     <task id="LOCAL-00010" summary="Trying to host backend for team. #8">
       <option name="closed" value="true" />
@@ -505,7 +492,23 @@
       <option name="project" value="LOCAL" />
       <updated>1744347415406</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="Removed the notification task properties for now until I get the push notifications feature working.">
+      <option name="closed" value="true" />
+      <created>1744347760274</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1744347760274</updated>
+    </task>
+    <task id="LOCAL-00058" summary="Removed the notification task properties for now until I get the push notifications feature working.">
+      <option name="closed" value="true" />
+      <created>1744347766147</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1744347766148</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -523,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Trying to implement a random forest regressor for completion time. #7" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #8" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #9" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #10" />
@@ -548,6 +550,7 @@
     <MESSAGE value="Made it so that tasks cannot be eddited on the List or Calendar view. Did this because it causes errors when a user trys to edit a recurring instance of a tasks (those of which are only shown on the list/calendar view). Easiest fix was just to make tasks editable only on the manage tasks tab." />
     <MESSAGE value="Added a visual cross off animation for tasks on press when the user clicks on a task on the list view or calendar view. The strike through is consistent through all screens." />
     <MESSAGE value="Added a little settings cog for Logout and Create Account options. Other things can be added here in the future. Also attempting to implement a Push Notification system, one notification that is daily, it should notify the user of how many tasks they have that day, when this notification is clicked it should take the user to the calendar view of that day on align. Also in the edit modal of each individual tasks, users should be able to togle reminders on or off for that task and also set how early before they want the reminder." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added a little settings cog for Logout and Create Account options. Other things can be added here in the future. Also attempting to implement a Push Notification system, one notification that is daily, it should notify the user of how many tasks they have that day, when this notification is clicked it should take the user to the calendar view of that day on align. Also in the edit modal of each individual tasks, users should be able to togle reminders on or off for that task and also set how early before they want the reminder." />
+    <MESSAGE value="Removed the notification task properties for now until I get the push notifications feature working." />
+    <option name="LAST_COMMIT_MESSAGE" value="Removed the notification task properties for now until I get the push notifications feature working." />
   </component>
 </project>

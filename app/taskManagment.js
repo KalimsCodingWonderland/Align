@@ -12,7 +12,7 @@ import {
     ScrollView,
     Alert,
     Animated,
-    Platform, // Import Platform
+    Platform, Switch, // Import Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
@@ -34,6 +34,8 @@ import {
 } from '../constants/api';
 import { generateRecurringTasks } from '../constants/recurrence';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from "expo-notifications";
+import {cancelTaskReminder, scheduleTaskReminder} from "../constants/notifications";
 
 const categories = [
     'STUDY',
@@ -406,6 +408,20 @@ export default function CalendarScreen() {
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const menuAnimation = useRef(new Animated.Value(0)).current;
 
+    const [editReminderEnabled, setEditReminderEnabled] = useState(false);
+    const [editReminderOffset, setEditReminderOffset] = useState(0);
+
+    useEffect(() => {
+        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+            const { screen, date } = response.notification.request.content.data;
+            if (screen === 'Calendar') {
+                setActiveView('calendar');
+                setSelectedDate(date);
+            }
+        });
+        return () => subscription.remove();
+    }, []);
+
     // Add this effect
     useEffect(() => {
         Animated.timing(menuAnimation, {
@@ -695,6 +711,11 @@ export default function CalendarScreen() {
             } else {
                 Alert.alert('Error', result?.error || 'Failed to add task to database');
             }
+            if (result && result._id) {
+                if (result.reminderEnabled) {
+                    await scheduleTaskReminder(result);
+                }
+            }
         } catch (error) {
             console.error("Error processing/adding task:", error);
             Alert.alert('Error', `An unexpected error occurred: ${error.message}`);
@@ -713,6 +734,10 @@ export default function CalendarScreen() {
         const localDay = taskDateUTCBased.getDate();
         const localHour = taskDateUTCBased.getHours();
         const localMinute = taskDateUTCBased.getMinutes();
+
+        const [editReminderEnabled, setEditReminderEnabled] = useState(task.reminderEnabled || false);
+
+        const [editReminderOffset, setEditReminderOffset] = useState(task.reminderOffset || 0);
 
         const utcYearForCalendar = taskDateUTCBased.getUTCFullYear();
         const utcMonthForCalendar = (taskDateUTCBased.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -821,6 +846,8 @@ export default function CalendarScreen() {
             date: finalDateISO,
             category: editCategory,
             time: editDuration,
+            reminderEnabled: editReminderEnabled,  // Add reminder fields
+            reminderOffset: editReminderOffset,
             completionTime: editDuration,
             recurrence: recurrenceType !== 'none' ? {
                 type: recurrenceType,
@@ -860,15 +887,31 @@ export default function CalendarScreen() {
             const result = await updateTask(taskIdToUpdate, updatedTaskData, token);
 
             if (result && result._id) {
+                // Cancel existing notification if exists
+                if (taskToEdit.notificationId) {
+                    await cancelTaskReminder(taskToEdit.notificationId);
+                }
+
+                // Schedule new reminder if enabled
+                let notificationId;
+                if (result.reminderEnabled) {
+                    notificationId = await scheduleTaskReminder(result);
+                }
+
+                // Update task with new notification ID
+                const updatedTask = {
+                    ...result,
+                    notificationId: notificationId || null
+                };
+
                 setTasks(prevTasks =>
                     prevTasks.map(task =>
-                        task._id === taskToEdit._id ? result : task
+                        task._id === taskToEdit._id ? updatedTask : task
                     ).sort((a, b) => new Date(a.date) - new Date(b.date))
                 );
                 setEditingTask(null);
-            } else {
-                Alert.alert('Error', result?.error || 'Failed to update task');
             }
+
         } catch (error) {
             console.error('Save edited task error:', error);
             Alert.alert('Error', 'Failed to save changes: ${error.message}');
@@ -1384,7 +1427,15 @@ export default function CalendarScreen() {
                         ]
                     }
                 ]}
+
             >
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push('/dailySummarySettings')}
+                >
+                    <Text style={styles.menuItemText}>Notification Settings</Text>
+                </TouchableOpacity>
+                <View style={styles.menuDivider} />
                 <TouchableOpacity
                     style={styles.menuItem}
                     onPress={handleLogout}
@@ -1619,6 +1670,29 @@ export default function CalendarScreen() {
                             </TouchableOpacity>
                             {renderDurationPicker()}
                             {renderRecurrenceEndTypePicker()}
+
+                            <Text style={styles.label}>Task Reminder</Text>
+                            <View style={styles.reminderContainer}>
+                                <Text>Enable Reminder</Text>
+                                <Switch
+                                    value={editReminderEnabled}
+                                    onValueChange={setEditReminderEnabled}
+                                />
+                            </View>
+                            {editReminderEnabled && (
+                                <View style={styles.reminderOffsetContainer}>
+                                    <Text>Remind Before:</Text>
+                                    <Picker
+                                        selectedValue={editReminderOffset.toString()}
+                                        onValueChange={value => setEditReminderOffset(parseInt(value))}
+                                    >
+                                        <Picker.Item label="15 minutes" value="15" />
+                                        <Picker.Item label="30 minutes" value="30" />
+                                        <Picker.Item label="1 hour" value="60" />
+                                        <Picker.Item label="2 hours" value="120" />
+                                    </Picker>
+                                </View>
+                            )}
 
                             <View style={styles.formActions}>
                                 <TouchableOpacity
