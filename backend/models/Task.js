@@ -1,5 +1,4 @@
 // backend/models/Task.js
-
 const mongoose = require('mongoose');
 
 const TaskSchema = new mongoose.Schema({
@@ -9,6 +8,7 @@ const TaskSchema = new mongoose.Schema({
     time: { type: String, required: true }, // Stored in HH:MM format
     date: { type: Date, required: true },
     predicted: { type: Boolean, default: false },
+    deleted: { type: Boolean, default: false },
     recurrence: {
         type: {
             type: String,
@@ -31,8 +31,15 @@ const TaskSchema = new mongoose.Schema({
         endDate: Date,
         occurrences: Number
     },
-    originalTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
-    isRecurring: Boolean
+    originalTask: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task',
+        index: true // Add index for faster lookups
+    },
+    isRecurringInstance: {
+        type: Boolean,
+        default: false
+    }
 });
 
 module.exports = mongoose.model('Task', TaskSchema);

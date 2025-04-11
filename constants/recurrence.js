@@ -1,5 +1,4 @@
 // constants/recurrence.js
-
 export const generateRecurringTasks = (task) => {
     // If no recurrence or 'none', just return the single occurrence.
     if (!task.recurrence || task.recurrence.type === 'none') return [task];
@@ -27,6 +26,7 @@ export const generateRecurringTasks = (task) => {
                         date: currentDate.toISOString(),
                         _id: `${task._id}_${count}`,
                         originalTask: task._id,
+                        isRecurringInstance: true,
                     });
                     count++;
                     currentDate.setUTCDate(currentDate.getUTCDate() + interval);
@@ -39,6 +39,7 @@ export const generateRecurringTasks = (task) => {
                             date: currentDate.toISOString(),
                             _id: `${task._id}_${count}`,
                             originalTask: task._id,
+                            isRecurringInstance: true,
                         });
                         count++;
                         currentDate.setUTCDate(currentDate.getUTCDate() + 7 * interval);
@@ -58,6 +59,7 @@ export const generateRecurringTasks = (task) => {
                                 date: occurrenceDate.toISOString(),
                                 _id: `${task._id}_${count}_${dayIndex}`,
                                 originalTask: task._id,
+                                isRecurringInstance: true,
                             });
                         });
                         count++;
@@ -71,6 +73,7 @@ export const generateRecurringTasks = (task) => {
                         date: currentDate.toISOString(),
                         _id: `${task._id}_${count}`,
                         originalTask: task._id,
+                        isRecurringInstance: true,
                     });
                     count++;
                     currentDate.setUTCMonth(currentDate.getUTCMonth() + interval);
@@ -82,6 +85,7 @@ export const generateRecurringTasks = (task) => {
                         date: currentDate.toISOString(),
                         _id: `${task._id}_${count}`,
                         originalTask: task._id,
+                        isRecurringInstance: true,
                     });
                     count++;
                     currentDate.setUTCFullYear(currentDate.getUTCFullYear() + interval);
@@ -109,6 +113,7 @@ export const generateRecurringTasks = (task) => {
                     date: currentDate.toISOString(),
                     _id: `${task._id}_slide_${i}`,
                     originalTask: task._id,
+                    isRecurringInstance: true,
                 });
                 currentDate.setUTCDate(currentDate.getUTCDate() + interval);
             }
@@ -124,6 +129,7 @@ export const generateRecurringTasks = (task) => {
                         date: currentDate.toISOString(),
                         _id: `${task._id}_slide_${i}`,
                         originalTask: task._id,
+                        isRecurringInstance: true,
                     });
                     currentDate.setUTCDate(currentDate.getUTCDate() + 7 * interval);
                 }
@@ -150,6 +156,7 @@ export const generateRecurringTasks = (task) => {
                                 date: occurrenceDate.toISOString(),
                                 _id: `${task._id}_slide_${added}`,
                                 originalTask: task._id,
+                                isRecurringInstance: true,
                             });
                             added++;
                         }
@@ -167,6 +174,7 @@ export const generateRecurringTasks = (task) => {
                     date: currentDate.toISOString(),
                     _id: `${task._id}_slide_${i}`,
                     originalTask: task._id,
+                    isRecurringInstance: true,
                 });
                 currentDate.setUTCMonth(currentDate.getUTCMonth() + interval);
             }
@@ -180,6 +188,7 @@ export const generateRecurringTasks = (task) => {
                     date: currentDate.toISOString(),
                     _id: `${task._id}_slide_${i}`,
                     originalTask: task._id,
+                    isRecurringInstance: true,
                 });
                 currentDate.setUTCFullYear(currentDate.getUTCFullYear() + interval);
             }

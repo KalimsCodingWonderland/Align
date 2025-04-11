@@ -72,7 +72,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Get tasks for logged in user
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const tasks = await Task.find({ user: req.user._id });
+        const tasks = await Task.find({
+            user: req.user._id,
+            deleted: { $ne: true }  // Exclude soft-deleted tasks
+        });
         res.json(tasks);
     } catch (error) {
         console.error(error);
@@ -101,15 +104,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Delete a task
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
-        const deletedTask = await Task.findOneAndDelete({
-            _id: req.params.id,
-            user: req.user._id
-        });
+        const deletedTask = await Task.findOneAndUpdate(
+            { _id: req.params.id, user: req.user._id },
+            { $set: { deleted: true } },  // Soft delete instead of removing
+            { new: true }
+        );
         if (!deletedTask) {
             return res.status(404).json({ error: 'Task not found' });
         }
-        // Delete associated feedback
-        await Feedback.deleteMany({ task_id: req.params.id });
+        // Remove the feedback deletion line completely
         res.json({ success: true });
     } catch (error) {
         console.error(error);

@@ -4,18 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted.">
-      <change afterPath="$PROJECT_DIR$/app/alignSleep.js" afterDir="false" />
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Reverted back to: Commit 7cc9dc4">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/styles.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/addTask.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/addTask.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/calendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/calendar.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/recurrence.js" beforeDir="false" afterPath="$PROJECT_DIR$/constants/recurrence.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -119,39 +110,8 @@
       <workItem from="1742574313839" duration="40559000" />
       <workItem from="1742852645359" duration="3014000" />
       <workItem from="1743090338714" duration="593000" />
-      <workItem from="1743632854361" duration="24132000" />
-    </task>
-    <task id="LOCAL-00001" summary="Cleaned up the User Authentication Screen Visually.&#10;Added task parsing functionality using Gemini.">
-      <option name="closed" value="true" />
-      <created>1742068026186</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1742068026186</updated>
-    </task>
-    <task id="LOCAL-00002" summary="Trying to deploy backend for team access.">
-      <option name="closed" value="true" />
-      <created>1742221228269</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1742221228269</updated>
-    </task>
-    <task id="LOCAL-00003" summary="Trying to deploy backend for team access. #2">
-      <option name="closed" value="true" />
-      <created>1742223279941</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1742223279941</updated>
-    </task>
-    <task id="LOCAL-00004" summary="Changed back to locally hosted DB.">
-      <option name="closed" value="true" />
-      <created>1742224113336</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1742224113336</updated>
+      <workItem from="1743632854361" duration="24477000" />
+      <workItem from="1744322793069" duration="6446000" />
     </task>
     <task id="LOCAL-00005" summary="Trying to host backend for team. #3">
       <option name="closed" value="true" />
@@ -497,7 +457,55 @@
       <option name="project" value="LOCAL" />
       <updated>1742592578084</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="Added Align Sleep: Feature that allows the user to set a sleep schedule so that Align can better schedule to the users patterns. Also added Smart Align, this is a third option that align prompts the user with when a time conflict arises, when chosen, align will take all other tasks and the sleep schedule into acount and will move the conflicting task to the first available slot of time where it fits. The user is still able to override/cancel if they desire.">
+      <option name="closed" value="true" />
+      <created>1743658037475</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1743658037475</updated>
+    </task>
+    <task id="LOCAL-00049" summary="Trying to refine ML model logic #1">
+      <option name="closed" value="true" />
+      <created>1744324881620</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1744324881620</updated>
+    </task>
+    <task id="LOCAL-00050" summary="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task.">
+      <option name="closed" value="true" />
+      <created>1744327075427</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1744327075428</updated>
+    </task>
+    <task id="LOCAL-00051" summary="Reverted back to: Commit 7cc9dc4">
+      <option name="closed" value="true" />
+      <created>1744331264626</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1744331264626</updated>
+    </task>
+    <task id="LOCAL-00052" summary="Reverted back to: Commit 7cc9dc4">
+      <option name="closed" value="true" />
+      <created>1744331375705</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1744331375705</updated>
+    </task>
+    <task id="LOCAL-00053" summary="Reverted back to: Commit 7cc9dc4">
+      <option name="closed" value="true" />
+      <created>1744331486700</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1744331486700</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -515,10 +523,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Made the calendar view sort tasks by time." />
-    <MESSAGE value="Trying to implement a random forest regressor for completion time." />
-    <MESSAGE value="Trying to implement a random forest regressor for completion time. #2" />
-    <MESSAGE value="Trying to implement a random forest regressor for completion time. #3" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #4" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #5" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #6" />
@@ -540,6 +544,10 @@
     <MESSAGE value="Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is delted." />
     <MESSAGE value="#2 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
     <MESSAGE value="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
-    <option name="LAST_COMMIT_MESSAGE" value="#3 Trying to connect the feedback documents in the DB to their respective tasks, so that the feedback for any given task is deleted with the task when the task is deleted." />
+    <MESSAGE value="Added Align Sleep: Feature that allows the user to set a sleep schedule so that Align can better schedule to the users patterns. Also added Smart Align, this is a third option that align prompts the user with when a time conflict arises, when chosen, align will take all other tasks and the sleep schedule into acount and will move the conflicting task to the first available slot of time where it fits. The user is still able to override/cancel if they desire." />
+    <MESSAGE value="Trying to refine ML model logic #1" />
+    <MESSAGE value="#1 Trying to fix the server error when trying to edit an instance of a reccuring task by treating the edited task when editing a recurring instance as the original task." />
+    <MESSAGE value="Reverted back to: Commit 7cc9dc4" />
+    <option name="LAST_COMMIT_MESSAGE" value="Reverted back to: Commit 7cc9dc4" />
   </component>
 </project>
