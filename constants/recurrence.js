@@ -1,5 +1,5 @@
 // constants/recurrence.js
-
+//
 export const generateRecurringTasks = (task) => {
     // If no recurrence or 'none', just return the single occurrence.
     if (!task.recurrence || task.recurrence.type === 'none') return [task];
