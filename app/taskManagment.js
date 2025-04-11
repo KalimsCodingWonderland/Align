@@ -33,6 +33,7 @@ import {
     deleteTask,
 } from '../constants/api';
 import { generateRecurringTasks } from '../constants/recurrence';
+import { Ionicons } from '@expo/vector-icons';
 
 const categories = [
     'STUDY',
@@ -401,6 +402,31 @@ export default function CalendarScreen() {
     const [showRecurrenceTypePicker, setShowRecurrenceTypePicker] = useState(false);
     const [showRecurrenceEndTypePicker, setShowRecurrenceEndTypePicker] = useState(false);
     const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+    const menuAnimation = useRef(new Animated.Value(0)).current;
+
+    // Add this effect
+    useEffect(() => {
+        Animated.timing(menuAnimation, {
+            toValue: showSettingsMenu ? 1 : 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    }, [showSettingsMenu]);
+
+    // Add this function
+    const handleLogout = async () => {
+        await AsyncStorage.removeItem('token');
+        router.replace('/login');
+    };
+
+    // Add this function
+    const handleCreateNewAccount = async () => {
+        await AsyncStorage.removeItem('token');
+        router.replace('/register');
+    };
+
 
     const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
 
@@ -888,7 +914,7 @@ export default function CalendarScreen() {
             const dateKey = getLocalDateKey(task.date);
             acc[dateKey] = {
                 marked: true,
-                dotColor: '#007aff',
+                dotColor: '#000000',
             };
             return acc;
         }, {});
@@ -1335,6 +1361,44 @@ export default function CalendarScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Add Settings Cog */}
+            <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => setShowSettingsMenu(!showSettingsMenu)}
+            >
+                <Ionicons name="settings-sharp" size={24} color="#007aff" />
+            </TouchableOpacity>
+
+            {/* Settings Menu */}
+            <Animated.View
+                style={[
+                    styles.settingsMenu,
+                    {
+                        opacity: menuAnimation,
+                        transform: [
+                            { translateY: menuAnimation.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [-20, 0]
+                                })}
+                        ]
+                    }
+                ]}
+            >
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={handleLogout}
+                >
+                    <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
+                <View style={styles.menuDivider} />
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={handleCreateNewAccount}
+                >
+                    <Text style={styles.createNewAccText}>Create New Account</Text>
+                </TouchableOpacity>
+            </Animated.View>
 
             <Modal visible={editingTask !== null} transparent={true} animationType="slide">
                 <View style={styles.modalContainer}>
