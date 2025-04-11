@@ -403,6 +403,92 @@ export default function CalendarScreen() {
     const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
     const feedbackModalOpacity = useRef(new Animated.Value(0)).current;
+
+    // ---------------------------
+    // NEW CROSS-OFF RELATED STATE
+    // ---------------------------
+    // 1) A ref that holds each task's Animated.Value for line width
+    const crossOffRefs = useRef({});
+    // 2) A map that tells if a task is currently crossed off
+    const [crossedOffMap, setCrossedOffMap] = useState({});
+
+    // 3) Store measured text widths so we know how far to animate
+    const [textWidths, setTextWidths] = useState({});
+
+    // Utility: toggles a cross-off animation for a single item
+    const handleCrossOff = (item) => {
+        const id = item._id || `local_${item.text}`;
+        const currentlyCrossed = crossedOffMap[id] === true;
+
+        if (!crossOffRefs.current[id]) {
+            crossOffRefs.current[id] = {
+                lineAnim: new Animated.Value(0),
+                textOpacity: new Animated.Value(1),
+                scaleAnim: new Animated.Value(1)
+            };
+        }
+
+        const { lineAnim, textOpacity, scaleAnim } = crossOffRefs.current[id];
+        const finalWidth = textWidths[id] || 0;
+
+        if (!currentlyCrossed) {
+            Animated.parallel([
+                Animated.spring(lineAnim, {
+                    toValue: finalWidth,
+                    speed: 80,
+                    bounciness: 10,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(textOpacity, {
+                    toValue: 0.3,
+                    duration: 250,
+                    useNativeDriver: false,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1.02,
+                    speed: 110,
+                    useNativeDriver: false,
+                })
+            ]).start(({ finished }) => {
+                if (finished) {
+                    Animated.spring(scaleAnim, {
+                        toValue: 1,
+                        useNativeDriver: false,
+                    }).start();
+                    setCrossedOffMap(prev => ({ ...prev, [id]: true }));
+                }
+            });
+        } else {
+            Animated.parallel([
+                Animated.spring(lineAnim, {
+                    toValue: 0,
+                    speed: 80,
+                    bounciness: 10,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(textOpacity, {
+                    toValue: 1,
+                    duration: 250,
+                    useNativeDriver: false,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 0.98,
+                    speed: 110,
+                    useNativeDriver: false,
+                })
+            ]).start(({ finished }) => {
+                if (finished) {
+                    Animated.spring(scaleAnim, {
+                        toValue: 1,
+                        useNativeDriver: false,
+                    }).start();
+                    setCrossedOffMap(prev => ({ ...prev, [id]: false }));
+                }
+            });
+        }
+    };
+
+
     useEffect(() => {
         if (feedbackModalVisible) {
             Animated.timing(feedbackModalOpacity, {
@@ -1072,51 +1158,118 @@ export default function CalendarScreen() {
         </View>
     </Modal>;
 
-    const renderTaskItem = ({ item }) => (
+    const renderTaskItem = ({ item }) => {
+        // Unique ID to track crossing
+        const id = item._id || `local_${item.text}`;
+        const isCrossed = crossedOffMap[id] === true;
+        const finalWidth = textWidths[id] || 0;
 
-        <TouchableOpacity
-            onPress={activeView === 'tasks' ? () => handleEditTask(item) : null} // Only allow presses in 'tasks' view
-            activeOpacity={activeView === 'tasks' ? 0.7 : 1}
-        >
-            <View style={styles.taskItem}>
-                <Text style={styles.taskText}>{item.text}</Text>
-                <View style={styles.timeRangeContainer}>
-                    <Text style={styles.timeRangeText}>
-                        🕒 {formatTaskTime(item.date)}
-                    </Text>
-                    {item.time !== 'DEFAULT' && (
-                        <Text style={styles.timeRangeText}>
-                            → {calculateEndTime(item.date, item.time)}
-                        </Text>
-                    )}
-                </View>
-                <View style={styles.taskDetails}>
-                    <Text
-                        style={[
-                            styles.categoryLabel,
-                            { backgroundColor: item.category === 'SLEEP' ? '#000000' : getCategoryColor(item.category) }
-                        ]}
-                    >
-                        {item.category?.toLowerCase() || 'other'}
-                    </Text>
-                    <Text style={styles.timeText}>
-                        ⏱ {formatDuration(item.completionTime || item.time)}
-                    </Text>
-                    {item.predicted && (
-                        <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 AI</Text>
-                    )}
-                </View>
-                {item.predicted && item.category !== 'SLEEP' && (
-                    <TouchableOpacity
-                        style={styles.feedbackTriggerButton}
-                        onPress={() => handleFeedback(item)}
-                    >
-                        <Text style={styles.feedbackTriggerButtonText}>Was AI duration right?</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
+        // Ensure we have all Animated.Values: lineAnim, textOpacity, and scaleAnim
+        if (!crossOffRefs.current[id]) {
+            crossOffRefs.current[id] = {
+                lineAnim: new Animated.Value(0),
+                textOpacity: new Animated.Value(1),
+                scaleAnim: new Animated.Value(1)
+            };
+        }
+        const { lineAnim, textOpacity, scaleAnim } = crossOffRefs.current[id];
+
+        // Decide how to handle press:
+        const handlePress = () => {
+            if (activeView === 'tasks') {
+                // We are in Manage Tasks => open the edit modal
+                handleEditTask(item);
+            } else {
+                // We are on List or Calendar => toggle strike-through
+                handleCrossOff(item);
+            }
+        };
+
+        return (
+            <TouchableOpacity activeOpacity={0.7} onPress={handlePress}>
+                <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                    <View style={styles.taskItem}>
+                        <View
+                            style={{ alignSelf: 'flex-start' }}
+                            onLayout={(e) => {
+                                const w = e.nativeEvent.layout.width;
+                                setTextWidths((prev) => ({ ...prev, [id]: w }));
+                            }}
+                        >
+                            <Animated.Text
+                                style={[
+                                    styles.taskText,
+                                    { opacity: textOpacity },
+                                    isCrossed && styles.crossedText
+                                ]}
+                            >
+                                {item.text}
+                            </Animated.Text>
+                            <Animated.View
+                                style={[
+                                    styles.crossOffLine,
+                                    {
+                                        width: lineAnim,
+                                        backgroundColor: getCategoryColor(item.category),
+                                        opacity: lineAnim.interpolate({
+                                            inputRange: [0, finalWidth],
+                                            outputRange: [0, 1]
+                                        })
+                                    }
+                                ]}
+                            />
+                        </View>
+
+                        <View style={styles.timeRangeContainer}>
+                            <Text style={styles.timeRangeText}>
+                                🕒 {formatTaskTime(item.date)}
+                            </Text>
+                            {item.time !== 'DEFAULT' && (
+                                <Text style={styles.timeRangeText}>
+                                    → {calculateEndTime(item.date, item.time)}
+                                </Text>
+                            )}
+                        </View>
+
+                        <View style={styles.taskDetails}>
+                            <Text
+                                style={[
+                                    styles.categoryLabel,
+                                    {
+                                        backgroundColor:
+                                            item.category === 'SLEEP'
+                                                ? '#000'
+                                                : getCategoryColor(item.category)
+                                    }
+                                ]}
+                            >
+                                {item.category?.toLowerCase() || 'other'}
+                            </Text>
+                            <Text style={styles.timeText}>
+                                ⏱ {formatDuration(item.completionTime || item.time)}
+                            </Text>
+                            {item.predicted && (
+                                <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>
+                                    🤖 AI
+                                </Text>
+                            )}
+                        </View>
+
+                        {item.predicted && item.category !== 'SLEEP' && (
+                            <TouchableOpacity
+                                style={styles.feedbackTriggerButton}
+                                onPress={() => handleFeedback(item)}
+                            >
+                                <Text style={styles.feedbackTriggerButtonText}>
+                                    Was AI duration right?
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </Animated.View>
+            </TouchableOpacity>
+        );
+    };
 
     const renderTasks = () => {
         switch (activeView) {

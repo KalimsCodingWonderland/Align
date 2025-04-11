@@ -61,10 +61,6 @@ export const styles = StyleSheet.create({
         shadowRadius: 5,
         elevation: 2,
     },
-    taskText: {
-        fontSize: 16,
-        marginBottom: 8,
-    },
     taskDetails: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -221,6 +217,31 @@ export const styles = StyleSheet.create({
         paddingVertical: 8,
         borderBottomWidth: 1, // Add separator
         borderBottomColor: '#f0f0f5',
+    },
+    crossOffLine: {
+        position: 'absolute',
+        left: 0,
+        top: '58%', // Slightly lower for better visual balance
+        height: 4,
+        borderRadius: 2,
+        transform: [{ translateY: -2 }],
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    crossedText: {
+        color: '#999',
+        textDecorationLine: 'line-through',
+    },
+    taskText: {
+        fontSize: 16,
+        marginBottom: 8,
+        fontWeight: '500',
+        color: '#1c1c1e',
+        transitionProperty: 'all',
+        transitionDuration: '300ms',
     },
     pickerTitle: {
         fontSize: 18,
