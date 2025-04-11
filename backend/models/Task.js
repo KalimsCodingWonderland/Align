@@ -40,6 +40,9 @@ const TaskSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    reminderEnabled: { type: Boolean, default: false },
+    reminderOffset: { type: Number, default: 0 }, // in minutes
+    notificationId: { type: String }, // Store notification ID
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
