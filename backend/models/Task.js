@@ -32,8 +32,15 @@ const TaskSchema = new mongoose.Schema({
         endDate: Date,
         occurrences: Number
     },
-    originalTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
-    isRecurring: Boolean
+    originalTask: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task',
+        index: true // Add index for faster lookups
+    },
+    isRecurringInstance: {
+        type: Boolean,
+        default: false
+    }
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
