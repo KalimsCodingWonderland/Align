@@ -1074,7 +1074,10 @@ export default function CalendarScreen() {
 
     const renderTaskItem = ({ item }) => (
 
-        <TouchableOpacity onPress={() => handleEditTask(item)}>
+        <TouchableOpacity
+            onPress={activeView === 'tasks' ? () => handleEditTask(item) : null} // Only allow presses in 'tasks' view
+            activeOpacity={activeView === 'tasks' ? 0.7 : 1}
+        >
             <View style={styles.taskItem}>
                 <Text style={styles.taskText}>{item.text}</Text>
                 <View style={styles.timeRangeContainer}>
