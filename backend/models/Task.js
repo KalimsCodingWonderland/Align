@@ -39,7 +39,9 @@ const TaskSchema = new mongoose.Schema({
     isRecurringInstance: {
         type: Boolean,
         default: false
-    }
+    },
+    reminderEnabled: { type: Boolean, default: false },
+    reminderOffset: { type: Number, default: 10 } // Offset in minutes
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
