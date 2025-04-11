@@ -39,7 +39,7 @@ const TaskSchema = new mongoose.Schema({
     isRecurringInstance: {
         type: Boolean,
         default: false
-    }
+    },
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
