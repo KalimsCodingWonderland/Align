@@ -11,17 +11,18 @@ export const parseTaskDetails = async (task: any) => {
     try {
         const today = new Date();
         const currentYear = today.getFullYear();
+        const todayTime = today.toTimeString().split(' ')[0].substring(0, 5); // e.g., "14:30"
         const todayDate = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        const prompt = `TODAY'S DATE IS: ${todayDate}.
+        const prompt = `TODAY'S DATE IS: ${todayDate} AND CURRENT TIME IS: ${todayTime}.
 Extract task details and return them in this format:
 "CATEGORY|SCHEDULED_DATE|SCHEDULED_TIME|DURATION|RECURRENCE"
 
 RULES:
 - CATEGORY: One of STUDY, ENTERTAINMENT, WORK, EVENT, ERRAND, EXERCISE, HOUSEHOLD CHORE (uppercase) or MANUAL. (NO ''' JSON - NEVER INCLUDE THIS)
 - SCHEDULED_DATE: Use YYYY-MM-DD. If no year is given, assume ${currentYear}. For relative terms like "tomorrow", use ${todayDate} as a reference.
-- SCHEDULED_TIME: Use 24-hour HH:MM format. If not given, default to "12:00".
+- SCHEDULED_TIME: Use 24-hour HH:MM format. If not given, default to "12:00". 
 - DURATION: String like "1 hour", "30 min". If not given, use "DEFAULT".
 - RECURRENCE: 
    - If recurring, return a string with:
@@ -94,7 +95,7 @@ Task: "${task}"`;
 export const parseImageTasks = async (imageBase64: any) => {
     try {
         const today = new Date();
-        const todayDate = today.toISOString().split('T')[0];
+        const todayDate = today.toLocaleDateString('en-CA');
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `TODAY'S DATE IS: ${todayDate}.
