@@ -44,118 +44,153 @@ const normalizeDuration = (durationStr) => {
         if (minuteMatch) {
             minutes = parseInt(minuteMatch[1], 10);
         }
-        // If only minutes or hours specified, pad the other
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     }
 };
 
-// Check if two dates fall on the same UTC day
-const isSameUTCDate = (date1, date2) => {
+const formatTaskTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit'});
+};
+
+const formatCompletionTime = (timeStr) => {
+    if (!timeStr || timeStr === "DEFAULT") return "Default";
+    return formatDuration(timeStr);
+};
+
+const formatDuration = (durationStr) => {
+    if (!durationStr || durationStr === "DEFAULT") return "Default";
+    if (durationStr.includes(':')) {
+        const [h, m] = durationStr.split(':').map(Number);
+        let parts = [];
+        if (h > 0) parts.push(`${h} hr${h > 1 ? 's' : ''}`);
+        if (m > 0) parts.push(`${m} min`);
+        return parts.length > 0 ? parts.join(' ') : "0 min";
+    }
+    return durationStr;
+};
+
+const calculateEndTime = (startDateISO, duration) => {
+    if (duration === "DEFAULT") duration = "01:00";
+    const startDate = new Date(startDateISO);
+    const [hours, minutes] = duration.split(':').map(Number);
+    const endTime = new Date(startDate.getTime());
+    // Use setHours/setMinutes so the math is done in local time.
+    endTime.setHours(endTime.getHours() + hours);
+    endTime.setMinutes(endTime.getMinutes() + minutes);
+    // Directly format the local time instead of converting to an ISO string.
+    return endTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+
+const formatSectionDate = (dateString) => {
+    const [year, month, day] = dateString.split('-');
+    // Create a local date (month is zero-indexed)
+    const date = new Date(year, month - 1, day);
+    let formatted = date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    return `${formatted} - ${weekday}`;
+};
+
+
+
+const formatTaskDate = (dateString) => {
+    const date = new Date(dateString);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short',}).toUpperCase();
+    return `${month}/${day} - ${weekday}`;
+};
+
+const isSameLocalDate = (date1, date2) => {
     return (
-        date1.getUTCFullYear() === date2.getUTCFullYear() &&
-        date1.getUTCMonth() === date2.getUTCMonth() &&
-        date1.getUTCDate() === date2.getUTCDate()
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
     );
 };
 
-// Convert a duration string (HH:MM) to milliseconds
+
 const durationToMilliseconds = (duration) => {
-    if (duration === 'DEFAULT') return 0;
-    const [hours, minutes] = duration.split(':').map(Number);
-    return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
-};
-
-// Format a date string into a 12‑hour time format
-const formatTaskTime = (dateString) => {
-    const date = new Date(dateString);
-    let hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes} ${ampm}`;
-};
-
-// Calculate end time given start time and duration
-const calculateEndTime = (startDate, duration) => {
-    if (duration === 'DEFAULT') duration = '00:00';
+    if (!duration || duration === 'DEFAULT') duration = '01:00';
     const [h, m] = duration.split(':').map(Number);
-    const end = new Date(startDate);
-    end.setUTCHours(end.getUTCHours() + h);
-    end.setUTCMinutes(end.getUTCMinutes() + m);
-    return formatTaskTime(end.toISOString());
+    return (h * 60 + m) * 60 * 1000;
 };
 
-// ------------------------
-// NEW CONFLICT CHECKING HELPERS (including Sleep and Smart Align)
-// ------------------------
-
-// Returns sleep schedule (or default values) from AsyncStorage
-const getSleepSchedule = async () => {
-    let wakeTime = (await AsyncStorage.getItem('wakeTime')) || "07:00";
-    let bedtime = (await AsyncStorage.getItem('bedtimeTime')) || "23:00";
-    return { wakeTime, bedtime };
-};
-
-// Helper: Convert a time string (HH:MM) to total minutes
 const timeToMinutes = (timeStr) => {
-    if (!timeStr || timeStr === 'DEFAULT') return 60; // default 60 minutes
+    if (!timeStr || timeStr === 'DEFAULT') return 60;
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
 };
 
-// Calculate sleep intervals (returns an array of objects with start and end Date)
-const getSleepIntervals = (checkDate, wakeTimeStr, bedtimeStr) => {
-    const wakeMinutes = timeToMinutes(wakeTimeStr);
-    const bedMinutes = timeToMinutes(bedtimeStr);
-    const sleepIntervals = [];
-    const checkDateStart = new Date(checkDate);
-    checkDateStart.setUTCHours(0, 0, 0, 0);
-    const checkDateEnd = new Date(checkDateStart);
-    checkDateEnd.setUTCDate(checkDateStart.getUTCDate() + 1);
+// --- NEW: CONFLICT LOGIC INCLUDING SLEEP ---
 
-    if (bedMinutes > wakeMinutes) {
-        // Sleep cycle within same day (less common)
-        let sleepStart1 = new Date(checkDateStart);
-        let sleepEnd1 = new Date(checkDateStart);
-        sleepEnd1.setUTCMinutes(wakeMinutes);
-        let sleepStart2 = new Date(checkDateStart);
-        sleepStart2.setUTCMinutes(bedMinutes);
-        let sleepEnd2 = new Date(checkDateEnd);
-        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
-        sleepIntervals.push({ start: sleepStart2, end: sleepEnd2 });
-    } else {
-        // Standard case: sleep crosses midnight (e.g., 23:00 to 07:00)
-        let sleepStart1 = new Date(checkDateStart);
-        sleepStart1.setUTCMinutes(bedMinutes);
-        let sleepEnd1 = new Date(checkDateEnd);
-        // Also add the early morning block
-        let sleepStart2 = new Date(checkDateStart);
-        let sleepEnd2 = new Date(checkDateStart);
-        sleepEnd2.setUTCMinutes(wakeMinutes);
-        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
-        sleepIntervals.push({ start: sleepStart2, end: sleepEnd2 });
-    }
-    return sleepIntervals;
+const getSleepSchedule = async () => {
+    let wakeTime = await AsyncStorage.getItem('wakeTime') || "07:00";
+    let bedtime = await AsyncStorage.getItem('bedtimeTime') || "23:00";
+    return { wakeTime, bedtime };
 };
 
-// Updated conflict checking: now async and includes sleep schedule
+const getSleepIntervals = (newTaskStart, wakeTimeStr, bedtimeStr) => {
+    // Convert the new task's local date/time
+    const localTaskDate = new Date(newTaskStart);
+    const localHour = localTaskDate.getHours();
+    const localMinute = localTaskDate.getMinutes();
+
+    // Convert bedtime/wakeTime to hours/minutes
+    const [bH, bM] = bedtimeStr.split(':').map(Number);
+    const [wH, wM] = wakeTimeStr.split(':').map(Number);
+
+    // Decide which *calendar day* to treat as the "bedtime day":
+    // If the new task is before your wake time, we shift bedtime to the previous day
+    // so that "11:45 PM (day X) to 7:35 AM (day X+1)" always catches conflicts at 1 AM, 2 AM, etc.
+    let bedtimeDay = new Date(localTaskDate);
+    bedtimeDay.setHours(0, 0, 0, 0); // midnight of the *newTask* day
+
+    if (localHour < wH || (localHour === wH && localMinute < wM)) {
+        // Task is in the after-midnight-but-before-wake block:
+        // so bedtime actually started the previous calendar day
+        bedtimeDay.setDate(bedtimeDay.getDate() - 1);
+    }
+
+    // Build the bedtime (e.g., day X @ 23:45)
+    const bedtimeDate = new Date(bedtimeDay);
+    bedtimeDate.setHours(bH, bM, 0, 0);
+
+    // Build the wake time for the next day (day X+1 @ 7:35)
+    const wakeDay = new Date(bedtimeDay);
+    wakeDay.setDate(wakeDay.getDate() + 1);
+    wakeDay.setHours(wH, wM, 0, 0);
+
+    // Return the single interval covering bedtime -> next morning wake
+    return [
+        {
+            start: bedtimeDate,
+            end: wakeDay,
+        }
+    ];
+};
+
+
 const getConflictingTasks = async (newTaskStart, duration, existingTasks) => {
     const { wakeTime, bedtime } = await getSleepSchedule();
     const expandedTasks = existingTasks.flatMap(task => generateRecurringTasks(task));
     const newTaskEnd = new Date(newTaskStart.getTime() + durationToMilliseconds(duration));
     const conflicts = [];
 
-    // Check against existing tasks
     for (const task of expandedTasks) {
         const taskStart = new Date(task.date);
-        if (!isSameUTCDate(newTaskStart, taskStart)) continue;
+        if (!isSameLocalDate(newTaskStart, taskStart)) continue;
         const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
         if (newTaskStart < taskEnd && taskStart < newTaskEnd) {
             conflicts.push(task);
         }
     }
 
-    // Check against sleep schedule for the day
     const sleepIntervals = getSleepIntervals(newTaskStart, wakeTime, bedtime);
     for (const interval of sleepIntervals) {
         if (newTaskStart < interval.end && interval.start < newTaskEnd) {
@@ -165,31 +200,34 @@ const getConflictingTasks = async (newTaskStart, duration, existingTasks) => {
                 category: "SLEEP",
                 date: interval.start.toISOString(),
                 time: `${Math.floor((interval.end - interval.start) / 3600000)
-                    .toString().padStart(2, '0')}:${Math.floor(((interval.end - interval.start) % 3600000) / 60000)
-                    .toString().padStart(2, '0')}`,
+                    .toString()
+                    .padStart(2, '0')}:${Math.floor(((interval.end - interval.start) % 3600000) / 60000)
+                    .toString()
+                    .padStart(2, '0')}`,
                 isRecurring: false,
                 predicted: false,
             });
-            break; // only need one sleep conflict per day
+            break;
         }
     }
 
-    // Return unique conflicts (by _id)
     const uniqueConflicts = Array.from(new Map(conflicts.map(c => [c._id, c])).values());
+
     return uniqueConflicts;
 };
 
-// Updated alert that returns the user's decision ("cancel", "override" or "smart")
 const showConflictsAlert = (newTask, conflicts) => {
     const newTaskStartTime = formatTaskTime(newTask.date);
     const newTaskEndTime = calculateEndTime(newTask.date, newTask.time);
     let conflictItems = '';
+
     conflicts.forEach(conf => {
         const conflictStartTime = formatTaskTime(conf.date);
         const conflictEndTime = calculateEndTime(conf.date, conf.time === 'DEFAULT' ? '01:00' : conf.time);
         const conflictName = conf.category === "SLEEP" ? conf.text : `"${conf.text}"`;
         conflictItems += `• ${conflictName} (${conflictStartTime}–${conflictEndTime})\n`;
     });
+
     const fullMessage =
         `Your new task "${newTask.text}" (${newTaskStartTime}–${newTaskEndTime}) overlaps with:\n\n` +
         conflictItems +
@@ -209,7 +247,15 @@ const showConflictsAlert = (newTask, conflicts) => {
     });
 };
 
-// New smart align function that finds a free slot within the next 7 days during awake hours
+const isValidDate = (year, month, day) => {
+    const date = new Date(year, month - 1, day);
+    return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+    );
+};
+
 const smartAlignTask = async (newTask, existingTasks) => {
     const { wakeTime, bedtime } = await getSleepSchedule();
     const wakeMinutes = timeToMinutes(wakeTime);
@@ -217,40 +263,45 @@ const smartAlignTask = async (newTask, existingTasks) => {
 
     let originalDate = new Date(newTask.date);
     let originalDayStart = new Date(originalDate);
-    originalDayStart.setUTCHours(0, 0, 0, 0);
+    originalDayStart.setHours(0, 0, 0, 0);
 
     let awakeStartForOriginal = new Date(originalDayStart);
-    awakeStartForOriginal.setUTCMinutes(wakeMinutes);
+    awakeStartForOriginal.setMinutes(wakeMinutes);
     let awakeEndForOriginal = new Date(originalDayStart);
-    awakeEndForOriginal.setUTCMinutes(bedMinutes);
+    awakeEndForOriginal.setMinutes(bedMinutes);
 
     let startDate;
-    if (originalDate < awakeStartForOriginal || originalDate >= awakeEndForOriginal) {
+    if (originalDate >= awakeEndForOriginal) {
+        // Past bedtime => shift to tomorrow
         startDate = new Date(originalDayStart);
-        startDate.setUTCDate(startDate.getUTCDate() + 1);
+        startDate.setDate(startDate.getDate() + 1);
     } else {
-        startDate = originalDate;
+        // It's before bedtime => stay on the same day
+        startDate = new Date(originalDayStart);
     }
 
     const taskDurationMs = durationToMilliseconds(newTask.time);
+
     const allExpandedTasks = existingTasks.flatMap(t => generateRecurringTasks(t));
 
-    // Search for a free slot within the next 7 days
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         let currentDayBase = new Date(startDate);
-        currentDayBase.setUTCDate(startDate.getUTCDate() + dayOffset);
-        currentDayBase.setUTCHours(0, 0, 0, 0);
+        currentDayBase.setDate(startDate.getDate() + dayOffset);
+        currentDayBase.setHours(0, 0, 0, 0);
 
         let awakeStart = new Date(currentDayBase);
-        awakeStart.setUTCMinutes(wakeMinutes);
-        let awakeEnd = new Date(currentDayBase);
-        awakeEnd.setUTCMinutes(bedMinutes);
+        awakeStart.setMinutes(wakeMinutes);
 
-        const dayTasks = allExpandedTasks.filter(task => {
-            let taskStart = new Date(task.date);
-            let taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
-            return taskStart < awakeEnd && taskEnd > awakeStart;
-        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+        let awakeEnd = new Date(currentDayBase);
+        awakeEnd.setMinutes(bedMinutes);
+
+        const dayTasks = allExpandedTasks
+            .filter(task => {
+                let taskStart = new Date(task.date);
+                let taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
+                return taskStart < awakeEnd && taskEnd > awakeStart;
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
 
         const busyIntervals = dayTasks.map(task => {
             let taskStart = new Date(task.date);
@@ -265,11 +316,12 @@ const smartAlignTask = async (newTask, existingTasks) => {
         for (let i = 0; i <= busyIntervals.length; i++) {
             let freeStart = new Date(pointer.getTime());
             let freeEnd = (i < busyIntervals.length) ? new Date(busyIntervals[i].start.getTime()) : new Date(awakeEnd.getTime());
-            if (freeEnd > awakeEnd) freeEnd = new Date(awakeEnd.getTime());
+            if (freeEnd > awakeEnd) {
+                freeEnd = new Date(awakeEnd.getTime());
+            }
             if (freeStart < freeEnd) {
                 let freeDurationMs = freeEnd.getTime() - freeStart.getTime();
                 if (freeDurationMs >= taskDurationMs) {
-                    // Found a free slot; return updated task with the new start time.
                     return { ...newTask, date: freeStart.toISOString() };
                 }
             }
@@ -284,6 +336,10 @@ const smartAlignTask = async (newTask, existingTasks) => {
 
     Alert.alert("Smart Align Failed", "Could not find an open slot within the next 7 days during your awake hours.");
     return null;
+};
+
+const showConflictsAlertForFeedback = (newTask, conflicts) => {
+    // This function remains unchanged if used for feedback.
 };
 
 // ------------------------
@@ -435,7 +491,7 @@ export default function PaperImportScreen() {
                         let normalized = normalizeDuration(details.duration);
                         if (normalized === "00:00") normalized = "DEFAULT";
 
-                        const isoDate = new Date(`${details.scheduled_date}T${details.scheduled_time}:00Z`).toISOString();
+                        const isoDate = new Date(`${details.scheduled_date}T${details.scheduled_time}:00`).toISOString();
 
                         // If the OCR/parsing returns "MANUAL", queue it for manual category selection
                         if (details.category === "MANUAL") {
@@ -699,4 +755,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export { formatTaskTime, calculateEndTime, isSameUTCDate, durationToMilliseconds };
+export { formatTaskTime, calculateEndTime, isSameLocalDate, durationToMilliseconds };

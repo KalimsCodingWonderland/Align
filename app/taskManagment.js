@@ -6,13 +6,14 @@ import {
     TextInput,
     // Button, // No longer used directly
     Modal,
+    TouchableWithoutFeedback,
     TouchableOpacity,
     FlatList,
     // SectionList, // No longer used directly
     ScrollView,
     Alert,
     Animated,
-    Platform, // Import Platform
+    Platform, Switch, // Import Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
@@ -34,6 +35,9 @@ import {
 } from '../constants/api';
 import { generateRecurringTasks } from '../constants/recurrence';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from "expo-notifications";
+import {cancelTaskReminder, registerForPushNotificationsAsync, scheduleTaskReminder} from "../constants/notifications";
+import {BlurView} from "expo-blur";
 
 const categories = [
     'STUDY',
@@ -46,7 +50,7 @@ const categories = [
     'OTHER',
 ];
 
-// --- HELPER FUNCTIONS (Keep existing helpers: normalizeDuration, formatTaskTime, formatCompletionTime, formatDuration, calculateEndTime, formatSectionDate, formatTaskDate, isSameUTCDate, durationToMilliseconds) ---
+// --- HELPER FUNCTIONS (Keep existing helpers: normalizeDuration, formatTaskTime, formatCompletionTime, formatDuration, calculateEndTime, formatSectionDate, formatTaskDate, isSameLocalDate, durationToMilliseconds) ---
 const normalizeDuration = (durationStr) => {
     if (!durationStr) return "DEFAULT";
     if (durationStr.includes(':')) {
@@ -72,7 +76,7 @@ const normalizeDuration = (durationStr) => {
 
 const formatTaskTime = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit'});
 };
 
 const formatCompletionTime = (timeStr) => {
@@ -97,43 +101,45 @@ const calculateEndTime = (startDateISO, duration) => {
     const startDate = new Date(startDateISO);
     const [hours, minutes] = duration.split(':').map(Number);
     const endTime = new Date(startDate.getTime());
-    endTime.setUTCHours(endTime.getUTCHours() + hours);
-    endTime.setUTCMinutes(endTime.getUTCMinutes() + minutes);
-    return formatTaskTime(endTime.toISOString());
+    // Use setHours/setMinutes so the math is done in local time.
+    endTime.setHours(endTime.getHours() + hours);
+    endTime.setMinutes(endTime.getMinutes() + minutes);
+    // Directly format the local time instead of converting to an ISO string.
+    return endTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 };
+
 
 const formatSectionDate = (dateString) => {
     const [year, month, day] = dateString.split('-');
-    const date = new Date(Date.UTC(year, month - 1, day));
+    // Create a local date (month is zero-indexed)
+    const date = new Date(year, month - 1, day);
     let formatted = date.toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
-        year: 'numeric',
-        timeZone: 'UTC'
+        year: 'numeric'
     });
-    const weekday = date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        timeZone: 'UTC'
-    });
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
     return `${formatted} - ${weekday}`;
 };
 
 
+
 const formatTaskDate = (dateString) => {
     const date = new Date(dateString);
-    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = date.getUTCDate().toString().padStart(2, '0');
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }).toUpperCase();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short',}).toUpperCase();
     return `${month}/${day} - ${weekday}`;
 };
 
-const isSameUTCDate = (date1, date2) => {
+const isSameLocalDate = (date1, date2) => {
     return (
-        date1.getUTCFullYear() === date2.getUTCFullYear() &&
-        date1.getUTCMonth() === date2.getUTCMonth() &&
-        date1.getUTCDate() === date2.getUTCDate()
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
     );
 };
+
 
 const durationToMilliseconds = (duration) => {
     if (!duration || duration === 'DEFAULT') duration = '01:00';
@@ -155,48 +161,46 @@ const getSleepSchedule = async () => {
     return { wakeTime, bedtime };
 };
 
-const getSleepIntervals = (checkDate, wakeTimeStr, bedtimeStr) => {
-    const wakeMinutes = timeToMinutes(wakeTimeStr);
-    const bedMinutes = timeToMinutes(bedtimeStr);
+const getSleepIntervals = (newTaskStart, wakeTimeStr, bedtimeStr) => {
+    // Convert the new task's local date/time
+    const localTaskDate = new Date(newTaskStart);
+    const localHour = localTaskDate.getHours();
+    const localMinute = localTaskDate.getMinutes();
 
-    const sleepIntervals = [];
+    // Convert bedtime/wakeTime to hours/minutes
+    const [bH, bM] = bedtimeStr.split(':').map(Number);
+    const [wH, wM] = wakeTimeStr.split(':').map(Number);
 
-    const checkDateStart = new Date(checkDate);
-    checkDateStart.setUTCHours(0, 0, 0, 0);
+    // Decide which *calendar day* to treat as the "bedtime day":
+    // If the new task is before your wake time, we shift bedtime to the previous day
+    // so that "11:45 PM (day X) to 7:35 AM (day X+1)" always catches conflicts at 1 AM, 2 AM, etc.
+    let bedtimeDay = new Date(localTaskDate);
+    bedtimeDay.setHours(0, 0, 0, 0); // midnight of the *newTask* day
 
-    const checkDateEnd = new Date(checkDateStart);
-    checkDateEnd.setUTCDate(checkDateStart.getUTCDate() + 1);
-
-    if (bedMinutes > wakeMinutes) {
-        let sleepStart1 = new Date(checkDateStart);
-        let sleepEnd1 = new Date(checkDateStart);
-        sleepEnd1.setUTCMinutes(wakeMinutes);
-
-        let sleepStart2 = new Date(checkDateStart);
-        sleepStart2.setUTCMinutes(bedMinutes);
-        let sleepEnd2 = new Date(checkDateEnd);
-
-        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
-        sleepIntervals.push({ start: sleepStart2, end: sleepEnd2 });
-
-    } else {
-        let sleepStart1 = new Date(checkDateStart);
-        sleepStart1.setUTCMinutes(bedMinutes);
-        let sleepEnd1 = new Date(checkDateEnd);
-
-        let sleepStart2 = new Date(checkDateEnd);
-        let sleepEnd2 = new Date(checkDateEnd);
-        sleepEnd2.setUTCMinutes(wakeMinutes);
-
-        sleepIntervals.push({ start: sleepStart1, end: sleepEnd1 });
-        let sleepStart3 = new Date(checkDateStart);
-        let sleepEnd3 = new Date(checkDateStart);
-        sleepEnd3.setUTCMinutes(wakeMinutes);
-        sleepIntervals.push({ start: sleepStart3, end: sleepEnd3 });
+    if (localHour < wH || (localHour === wH && localMinute < wM)) {
+        // Task is in the after-midnight-but-before-wake block:
+        // so bedtime actually started the previous calendar day
+        bedtimeDay.setDate(bedtimeDay.getDate() - 1);
     }
 
-    return sleepIntervals;
+    // Build the bedtime (e.g., day X @ 23:45)
+    const bedtimeDate = new Date(bedtimeDay);
+    bedtimeDate.setHours(bH, bM, 0, 0);
+
+    // Build the wake time for the next day (day X+1 @ 7:35)
+    const wakeDay = new Date(bedtimeDay);
+    wakeDay.setDate(wakeDay.getDate() + 1);
+    wakeDay.setHours(wH, wM, 0, 0);
+
+    // Return the single interval covering bedtime -> next morning wake
+    return [
+        {
+            start: bedtimeDate,
+            end: wakeDay,
+        }
+    ];
 };
+
 
 const getConflictingTasks = async (newTaskStart, duration, existingTasks) => {
     const { wakeTime, bedtime } = await getSleepSchedule();
@@ -206,7 +210,7 @@ const getConflictingTasks = async (newTaskStart, duration, existingTasks) => {
 
     for (const task of expandedTasks) {
         const taskStart = new Date(task.date);
-        if (!isSameUTCDate(newTaskStart, taskStart)) continue;
+        if (!isSameLocalDate(newTaskStart, taskStart)) continue;
         const taskEnd = new Date(taskStart.getTime() + durationToMilliseconds(task.time));
         if (newTaskStart < taskEnd && taskStart < newTaskEnd) {
             conflicts.push(task);
@@ -270,11 +274,11 @@ const showConflictsAlert = (newTask, conflicts) => {
 };
 
 const isValidDate = (year, month, day) => {
-    const date = new Date(Date.UTC(year, month - 1, day));
+    const date = new Date(year, month - 1, day);
     return (
-        date.getUTCFullYear() === year &&
-        date.getUTCMonth() === month - 1 &&
-        date.getUTCDate() === day
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
     );
 };
 
@@ -285,19 +289,21 @@ const smartAlignTask = async (newTask, existingTasks) => {
 
     let originalDate = new Date(newTask.date);
     let originalDayStart = new Date(originalDate);
-    originalDayStart.setUTCHours(0, 0, 0, 0);
+    originalDayStart.setHours(0, 0, 0, 0);
 
     let awakeStartForOriginal = new Date(originalDayStart);
-    awakeStartForOriginal.setUTCMinutes(wakeMinutes);
+    awakeStartForOriginal.setMinutes(wakeMinutes);
     let awakeEndForOriginal = new Date(originalDayStart);
-    awakeEndForOriginal.setUTCMinutes(bedMinutes);
+    awakeEndForOriginal.setMinutes(bedMinutes);
 
     let startDate;
-    if (originalDate < awakeStartForOriginal || originalDate >= awakeEndForOriginal) {
+    if (originalDate >= awakeEndForOriginal) {
+        // Past bedtime => shift to tomorrow
         startDate = new Date(originalDayStart);
-        startDate.setUTCDate(startDate.getUTCDate() + 1);
+        startDate.setDate(startDate.getDate() + 1);
     } else {
-        startDate = originalDate;
+        // It's before bedtime => stay on the same day
+        startDate = new Date(originalDayStart);
     }
 
     const taskDurationMs = durationToMilliseconds(newTask.time);
@@ -306,14 +312,14 @@ const smartAlignTask = async (newTask, existingTasks) => {
 
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         let currentDayBase = new Date(startDate);
-        currentDayBase.setUTCDate(startDate.getUTCDate() + dayOffset);
-        currentDayBase.setUTCHours(0, 0, 0, 0);
+        currentDayBase.setDate(startDate.getDate() + dayOffset);
+        currentDayBase.setHours(0, 0, 0, 0);
 
         let awakeStart = new Date(currentDayBase);
-        awakeStart.setUTCMinutes(wakeMinutes);
+        awakeStart.setMinutes(wakeMinutes);
 
         let awakeEnd = new Date(currentDayBase);
-        awakeEnd.setUTCMinutes(bedMinutes);
+        awakeEnd.setMinutes(bedMinutes);
 
         const dayTasks = allExpandedTasks
             .filter(task => {
@@ -405,6 +411,47 @@ export default function CalendarScreen() {
 
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const menuAnimation = useRef(new Animated.Value(0)).current;
+
+    const [editReminderEnabled, setEditReminderEnabled] = useState(false);
+    const [editReminderOffset, setEditReminderOffset] = useState(0);
+
+    useEffect(() => {
+        Notifications.getPermissionsAsync()
+        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+            const { screen, date } = response.notification.request.content.data;
+            if (screen === 'Calendar') {
+                setActiveView('calendar');
+                setSelectedDate(date);
+            }
+        });
+        return () => subscription.remove();
+    }, []);
+
+    useEffect(() => {
+        // Add this useEffect hook in your component
+        const setupNotifications = async () => {
+            // Configure notification handler
+            Notifications.setNotificationHandler({
+                handleNotification: async () => ({
+                    shouldShowAlert: true,
+                    shouldPlaySound: true,
+                    shouldSetBadge: false,
+                }),
+            });
+
+            // Check initial notification permission status
+            const { status } = await Notifications.getPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Notifications Blocked',
+                    'Please enable notifications in settings to receive reminders',
+                    [{ text: 'OK', onPress: () => {} }]
+                );
+            }
+        };
+
+        setupNotifications();
+    }, []);
 
     // Add this effect
     useEffect(() => {
@@ -528,6 +575,7 @@ export default function CalendarScreen() {
     useFocusEffect(
         React.useCallback(() => {
             const loadData = async () => {
+                await registerForPushNotificationsAsync();
                 const storedToken = await AsyncStorage.getItem('token');
                 if (storedToken) {
                     setToken(storedToken);
@@ -555,9 +603,9 @@ export default function CalendarScreen() {
 
     const getLocalDateKey = (dateStr) => {
         const date = new Date(dateStr);
-        const year = date.getUTCFullYear();
-        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-        const day = date.getUTCDate().toString().padStart(2, '0');
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
 
@@ -623,7 +671,7 @@ export default function CalendarScreen() {
                 return;
             }
 
-            const taskDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+            const taskDateUTC = new Date(year, month - 1, day, hour, minute, 0);
             if (isNaN(taskDateUTC.getTime())) {
                 Alert.alert("Internal Error", "Failed to create date object even after validation.");
                 console.error("Internal Error: new Date() resulted in Invalid Date:", { year, month, day, hour, minute });
@@ -676,30 +724,39 @@ export default function CalendarScreen() {
 
             if (conflicts.length > 0) {
                 const decision = await showConflictsAlert(newTaskData, conflicts);
-
-                if (decision === "cancel") {
-                    return;
-                } else if (decision === "smart") {
+                if (decision === "cancel") return;
+                if (decision === "smart") {
                     const smartAlignedTask = await smartAlignTask(newTaskData, tasks);
-                    if (smartAlignedTask) {
-                        newTaskData = smartAlignedTask;
-                    } else {
-                        return;
-                    }
+                    if (!smartAlignedTask) return;
+                    newTaskData = smartAlignedTask;
                 }
             }
 
             const result = await addTask(newTaskData, token);
             if (result && result._id) {
-                setTasks((prev) => [...prev, result].sort((a, b) => new Date(a.date) - new Date(b.date)));
+                // ⬇️ After adding the task, schedule the reminder and STORE the notification ID
+                let updatedTask = { ...result };
+                if (updatedTask.reminderEnabled) {
+                    const notificationId = await scheduleTaskReminder(updatedTask);
+                    if (notificationId) {
+                        updatedTask.notificationId = notificationId;
+                    }
+                }
+
+                // ⬇️ Now put updatedTask in state (with notificationId included!)
+                setTasks((prev) =>
+                    [...prev, updatedTask].sort((a, b) => new Date(a.date) - new Date(b.date))
+                );
             } else {
                 Alert.alert('Error', result?.error || 'Failed to add task to database');
             }
+
         } catch (error) {
             console.error("Error processing/adding task:", error);
             Alert.alert('Error', `An unexpected error occurred: ${error.message}`);
         }
     };
+
 
     const handleEditTask = (task) => {
         setEditingTask(task);
@@ -714,16 +771,19 @@ export default function CalendarScreen() {
         const localHour = taskDateUTCBased.getHours();
         const localMinute = taskDateUTCBased.getMinutes();
 
-        const utcYearForCalendar = taskDateUTCBased.getUTCFullYear();
-        const utcMonthForCalendar = (taskDateUTCBased.getUTCMonth() + 1).toString().padStart(2, '0');
-        const utcDayForCalendar = taskDateUTCBased.getUTCDate().toString().padStart(2, '0');
+        setEditReminderEnabled(task.reminderEnabled || false);
+        setEditReminderOffset(task.reminderOffset || 0);
+
+        const utcYearForCalendar = taskDateUTCBased.getFullYear();
+        const utcMonthForCalendar = (taskDateUTCBased.getMonth() + 1).toString().padStart(2, '0');
+        const utcDayForCalendar = taskDateUTCBased.getDate().toString().padStart(2, '0');
         setEditDate(`${utcYearForCalendar}-${utcMonthForCalendar}-${utcDayForCalendar}`);
 
         const initialPickerTime = new Date(
             localYear,
             localMonth,
             localDay,
-            localHour+4,
+            localHour,
             localMinute,
             0,
             0
@@ -754,7 +814,7 @@ export default function CalendarScreen() {
             try {
                 if (/^\d{4}-\d{2}-\d{2}$/.test(task.recurrence.endDate)) {
                     const [rYear, rMonth, rDay] = task.recurrence.endDate.split('-').map(Number);
-                    initialRecurrenceEndDate = new Date(Date.UTC(rYear, rMonth - 1, rDay));
+                    initialRecurrenceEndDate = new Date((rYear, rMonth - 1, rDay));
                 } else {
                     const parsedDate = new Date(task.recurrence.endDate);
                     if (!isNaN(parsedDate.getTime())) {
@@ -796,7 +856,7 @@ export default function CalendarScreen() {
         const hour = editTime.getHours();
         const minute = editTime.getMinutes();
 
-        const updatedDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+        const updatedDateUTC = new Date(year, month - 1, day, hour, minute, 0);
 
         const duration = `${tempDurationHours.padStart(2,'0')}:${tempDurationMinutes.padStart(2,'0')}`;
 
@@ -821,13 +881,15 @@ export default function CalendarScreen() {
             date: finalDateISO,
             category: editCategory,
             time: editDuration,
+            reminderEnabled: editReminderEnabled,  // Add reminder fields
+            reminderOffset: editReminderOffset,
             completionTime: editDuration,
             recurrence: recurrenceType !== 'none' ? {
                 type: recurrenceType,
                 daysOfWeek: (recurrenceType === 'weekly' || recurrenceType === 'custom') ? recurrenceDays : undefined,
                 interval: recurrenceInterval >= 1 ? recurrenceInterval : 1,
                 endType: recurrenceEndType,
-                endDate: recurrenceEndType === 'date' ? (recurrenceEndDate ? new Date(Date.UTC(recurrenceEndDate.getFullYear(), recurrenceEndDate.getMonth(), recurrenceEndDate.getDate())).toISOString().split('T')[0] : undefined) : undefined,
+                endDate: recurrenceEndType === 'date' ? (recurrenceEndDate ? new Date((recurrenceEndDate.getFullYear(), recurrenceEndDate.getMonth(), recurrenceEndDate.getDate())).toISOString().split('T')[0] : undefined) : undefined,
                 occurrences: recurrenceEndType === 'count' ? (recurrenceOccurrences > 0 ? recurrenceOccurrences : undefined) : undefined
             } : null,
             isRecurring: recurrenceType !== 'none',
@@ -860,15 +922,31 @@ export default function CalendarScreen() {
             const result = await updateTask(taskIdToUpdate, updatedTaskData, token);
 
             if (result && result._id) {
+                // Cancel existing notification if exists
+                if (taskToEdit.notificationId) {
+                    await cancelTaskReminder(taskToEdit.notificationId);
+                }
+
+                // Schedule new reminder if enabled
+                let notificationId;
+                if (result.reminderEnabled) {
+                    notificationId = await scheduleTaskReminder(result);
+                }
+
+                // Update task with new notification ID
+                const updatedTask = {
+                    ...result,
+                    notificationId: notificationId || null
+                };
+
                 setTasks(prevTasks =>
                     prevTasks.map(task =>
-                        task._id === taskToEdit._id ? result : task
+                        task._id === taskToEdit._id ? updatedTask : task
                     ).sort((a, b) => new Date(a.date) - new Date(b.date))
                 );
                 setEditingTask(null);
-            } else {
-                Alert.alert('Error', result?.error || 'Failed to update task');
             }
+
         } catch (error) {
             console.error('Save edited task error:', error);
             Alert.alert('Error', 'Failed to save changes: ${error.message}');
@@ -888,10 +966,16 @@ export default function CalendarScreen() {
                     text: "Delete", style: "destructive",
                     onPress: async () => {
                         try {
+                            // ⬇️ Cancel the reminder if it exists
+                            if (taskToDelete.notificationId) {
+                                await cancelTaskReminder(taskToDelete.notificationId);
+                            }
+
+                            // Now that we’ve canceled it locally, remove from backend
                             const result = await deleteTask(taskToDelete._id, token);
                             if (result.success) {
                                 setTasks((prevTasks) =>
-                                    prevTasks.filter((task) => task._id !== taskToDelete._id)
+                                    prevTasks.filter((t) => t._id !== taskToDelete._id)
                                 );
                                 setEditingTask(null);
                             } else {
@@ -906,6 +990,7 @@ export default function CalendarScreen() {
             ]
         );
     };
+
 
     const getMarkedDates = () => {
         const todayKey = new Date().toISOString().split('T')[0];
@@ -1362,13 +1447,12 @@ export default function CalendarScreen() {
                 </View>
             </Modal>
 
-            {/* Add Settings Cog */}
-            <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={() => setShowSettingsMenu(!showSettingsMenu)}
-            >
-                <Ionicons name="settings-sharp" size={24} color="#007aff" />
-            </TouchableOpacity>
+            {showSettingsMenu && (
+                <TouchableWithoutFeedback onPress={() => setShowSettingsMenu(false)}>
+                    <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 9 }} />
+                </TouchableWithoutFeedback>
+            )}
+
 
             {/* Settings Menu */}
             <Animated.View
@@ -1381,10 +1465,18 @@ export default function CalendarScreen() {
                                     inputRange: [0, 1],
                                     outputRange: [-20, 0]
                                 })}
-                        ]
+                        ],
+                        zIndex: 10,  // <-- Added
                     }
                 ]}
             >
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push('/dailySummarySettings')}
+                >
+                    <Text style={styles.notiSettingsText}>Notification Settings</Text>
+                </TouchableOpacity>
+                <View style={styles.menuDivider} />
                 <TouchableOpacity
                     style={styles.menuItem}
                     onPress={handleLogout}
@@ -1620,6 +1712,29 @@ export default function CalendarScreen() {
                             {renderDurationPicker()}
                             {renderRecurrenceEndTypePicker()}
 
+                            <Text style={styles.label}>Task Reminder</Text>
+                            <View style={styles.reminderContainer}>
+                                <Text>Enable Reminder</Text>
+                                <Switch
+                                    value={editReminderEnabled}
+                                    onValueChange={setEditReminderEnabled}
+                                />
+                            </View>
+                            {editReminderEnabled && (
+                                <View style={styles.reminderOffsetContainer}>
+                                    <Text>Remind Before:</Text>
+                                    <Picker
+                                        selectedValue={editReminderOffset.toString()}
+                                        onValueChange={value => setEditReminderOffset(parseInt(value))}
+                                    >
+                                        <Picker.Item label="15 minutes" value="15" />
+                                        <Picker.Item label="30 minutes" value="30" />
+                                        <Picker.Item label="1 hour" value="60" />
+                                        <Picker.Item label="2 hours" value="120" />
+                                    </Picker>
+                                </View>
+                            )}
+
                             <View style={styles.formActions}>
                                 <TouchableOpacity
                                     style={[styles.actionButton, styles.saveButton]}
@@ -1665,31 +1780,64 @@ export default function CalendarScreen() {
                 />
             ) : null}
 
+
             <View style={styles.tabBar}>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeView === 'tasks' && styles.activeTab]}
-                    onPress={() => setActiveView('tasks')}
-                >
-                    <Text style={[styles.tabText, activeView === 'tasks' && styles.activeTabText]}>
-                        Manage Tasks
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeView === 'list' && styles.activeTab]}
-                    onPress={() => setActiveView('list')}
-                >
-                    <Text style={[styles.tabText, activeView === 'list' && styles.activeTabText]}>
-                        List View
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeView === 'calendar' && styles.activeTab]}
-                    onPress={() => setActiveView('calendar')}
-                >
-                    <Text style={[styles.tabText, activeView === 'calendar' && styles.activeTabText]}>
-                        Calendar
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                        style={styles.tabButton}
+                        onPress={() => setActiveView('tasks')}
+                    >
+                        <Animated.View style={[styles.tabIconContainer, activeView === 'tasks' && styles.activeTab]}>
+                            <Ionicons
+                                name="add"
+                                size={24}
+                                color={activeView === 'tasks' ? '#007AFF' : '#8E8E93'}
+                            />
+                        </Animated.View>
+                        {activeView === 'tasks' && <Animated.View style={styles.activeIndicator}/>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.tabButton}
+                        onPress={() => setActiveView('list')}
+                    >
+                        <Animated.View style={[styles.tabIconContainer, activeView === 'list' && styles.activeTab]}>
+                            <Ionicons
+                                name="list-outline"
+                                size={24}
+                                color={activeView === 'list' ? '#007AFF' : '#8E8E93'}
+                            />
+                        </Animated.View>
+                        {activeView === 'list' && <Animated.View style={styles.activeIndicator}/>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.tabButton}
+                        onPress={() => setActiveView('calendar')}
+                    >
+                        <Animated.View style={[styles.tabIconContainer, activeView === 'calendar' && styles.activeTab]}>
+                            <Ionicons
+                                name="calendar-outline"
+                                size={24}
+                                color={activeView === 'calendar' ? '#007AFF' : '#8E8E93'}
+                            />
+                        </Animated.View>
+                        {activeView === 'calendar' && <Animated.View style={styles.activeIndicator}/>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.tabButton}
+                        onPress={() => setShowSettingsMenu(!showSettingsMenu)}
+                    >
+                        <Animated.View style={[styles.tabIconContainer, showSettingsMenu && styles.activeTab]}>
+                            <Ionicons
+                                name="settings-outline"
+                                size={24}
+                                color={showSettingsMenu ? '#007AFF' : '#8E8E93'}
+                            />
+                        </Animated.View>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );

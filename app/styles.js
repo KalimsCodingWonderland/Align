@@ -295,9 +295,9 @@ export const styles = StyleSheet.create({
     },
     settingsMenu: {
         position: 'absolute',
-        top: 90,
-        right: 20,
-        backgroundColor: 'white',
+        bottom: 130,
+        right: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 12,
         paddingVertical: 8,
         minWidth: 160,
@@ -321,6 +321,11 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
         color: '#333',
+    },
+    notiSettingsText : {
+        fontWeight: 'bold',
+        fontSize: 14,
+        color: '#007aff',
     },
     menuDivider: {
         height: 1,
@@ -370,6 +375,20 @@ export const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#8e8e93',
+    },
+    reminderContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginVertical: 10,
+    },
+    reminderOffsetContainer: {
+        marginTop: 10,
+    },
+    menuItemText: {
+        fontSize: 16,
+        color: '#007aff',
+        fontWeight: 'bold',
     },
     selectedDayText: {
         color: 'white',
@@ -453,45 +472,50 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     tabBar: {
+        position: 'absolute',
+        bottom: -60,  // Raised slightly for better visibility
+        left: 20,
+        right: 20,
+        height: 200,
+        backgroundColor: 'white',  // Solid white background
+        borderRadius: 24,  // Rounded corners
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',  // Subtle border
+    },
+    tabContainer: {
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        position: 'absolute',
-        bottom: 40,
-        left: 0,
-        right: 0,
-        backgroundColor: '#ffffff',
-        paddingVertical: 30,
-        borderTopWidth: 1,
-        borderTopColor: '#ccc',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 5,
+        paddingHorizontal: 8,
     },
     tabButton: {
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 30,
-        backgroundColor: '#f7f7f7',
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+        padding: 3,
+        borderRadius: 16,  // Rounded button area
+        bottom: 60,
+    },
+    tabIconContainer: {
+        padding: 12,
+        borderRadius: 14,
+        backgroundColor: 'transparent',
     },
     activeTab: {
-        backgroundColor: '#007aff',
-        transform: [{ scale: 1.1 }],
-        shadowColor: '#007aff',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 6,
-        elevation: 5,
+        backgroundColor: 'rgba(0, 122, 255, 0.1)',  // Subtle active state
+    },
+    activeIndicator: {
+        position: 'absolute',
+        bottom: -8,  // Position below the icon
+        height: 3,
+        width: 24,
+        backgroundColor: '#007AFF',
+        borderRadius: 2,
     },
     tabText: {
         color: '#333',
