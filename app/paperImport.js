@@ -34,19 +34,20 @@ const normalizeDuration = (durationStr) => {
         return `${hours}:${minutes}`;
     } else {
         const lower = durationStr.toLowerCase();
-        let hours = 0,
-            minutes = 0;
-        const hourMatch = lower.match(/(\d+)\s*(hour|hr)/);
+        let hours = 0, minutes = 0;
+        // Use regex patterns that allow an optional "s" after "hour"/"hr" and "min"
+        const hourMatch = lower.match(/(\d+)\s*(?:hour|hr)s?/);
         if (hourMatch) {
             hours = parseInt(hourMatch[1], 10);
         }
-        const minuteMatch = lower.match(/(\d+)\s*(min)/);
+        const minuteMatch = lower.match(/(\d+)\s*min(?:s)?/);
         if (minuteMatch) {
             minutes = parseInt(minuteMatch[1], 10);
         }
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     }
 };
+
 
 const formatTaskTime = (dateString) => {
     const date = new Date(dateString);
@@ -456,6 +457,8 @@ export default function PaperImportScreen() {
                 const token = await AsyncStorage.getItem('token');
                 let importedTasks = [];
                 let queuedManuals = [];
+                // Create a local accumulator for conflict checking that includes newly added tasks in this batch
+                let updatedTasks = [...allTasks];
 
                 // Loop through each OCR line.
                 // The regex now also captures a Recurrence field.
@@ -514,8 +517,8 @@ export default function PaperImportScreen() {
                             isRecurring: details.recurrence && details.recurrence.type !== 'none',
                         };
 
-                        // NEW: Check for conflicts (including sleep) using updated functions
-                        const conflicts = await getConflictingTasks(new Date(newTask.date), newTask.time, allTasks);
+                        // Check for conflicts (including sleep) using the local accumulator updatedTasks
+                        const conflicts = await getConflictingTasks(new Date(newTask.date), newTask.time, updatedTasks);
                         if (conflicts.length > 0) {
                             const decision = await showConflictsAlert(newTask, conflicts);
                             if (decision === "cancel") {
@@ -526,7 +529,7 @@ export default function PaperImportScreen() {
                                 });
                                 continue;
                             } else if (decision === "smart") {
-                                const smartAlignedTask = await smartAlignTask(newTask, allTasks);
+                                const smartAlignedTask = await smartAlignTask(newTask, updatedTasks);
                                 if (smartAlignedTask) {
                                     newTask.date = smartAlignedTask.date;
                                 } else {
@@ -543,6 +546,8 @@ export default function PaperImportScreen() {
                         // Add the task to the DB (and later to UI)
                         const response = await addTask(newTask, token);
                         if (response._id) {
+                            // Update both the state and the local tasks accumulator
+                            updatedTasks.push(response);
                             setAllTasks(prev => [...prev, response]);
                         }
                         importedTasks.push({
@@ -575,6 +580,7 @@ export default function PaperImportScreen() {
             setLoading(false);
         }
     };
+
 
     return (
         <View style={styles.container}>

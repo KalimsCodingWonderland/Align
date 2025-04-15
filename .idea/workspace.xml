@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Fixed bug in paper import where it doesnt catch conflicts if they are inside the tasks listed in the image.&#10;&#10;Updated ENV.">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Top secret private information.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -117,15 +116,7 @@
       <workItem from="1744395470187" duration="17427000" />
       <workItem from="1744413903863" duration="9481000" />
       <workItem from="1744679422135" duration="677000" />
-      <workItem from="1744680114787" duration="358000" />
-    </task>
-    <task id="LOCAL-00011" summary="Trying to host backend for team. #9">
-      <option name="closed" value="true" />
-      <created>1742228098792</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1742228098792</updated>
+      <workItem from="1744680114787" duration="819000" />
     </task>
     <task id="LOCAL-00012" summary="Back to locally hosted DB.">
       <option name="closed" value="true" />
@@ -511,7 +502,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744349718236</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="Top secret private information.">
+      <option name="closed" value="true" />
+      <created>1744680571166</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1744680571166</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -529,7 +528,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Trying to implement a random forest regressor for completion time. #9" />
     <MESSAGE value="Trying to implement a random forest regressor for completion time. #10" />
     <MESSAGE value="Succesfully deployed a ML Random Forest Regressor to learn from users historical data of tasks based on their category and predict accurate completion times for the task when one isnt provided by the user. Implemented a human in the loop edit modal for this ML prediction where the user can either affirm or reject and update it to refine the models predictions. Styled the components with consistent coloring etc." />
     <MESSAGE value="Trying to fix ML Model training requirments." />
@@ -554,6 +552,7 @@
     <MESSAGE value="Added a little settings cog for Logout and Create Account options. Other things can be added here in the future. Also attempting to implement a Push Notification system, one notification that is daily, it should notify the user of how many tasks they have that day, when this notification is clicked it should take the user to the calendar view of that day on align. Also in the edit modal of each individual tasks, users should be able to togle reminders on or off for that task and also set how early before they want the reminder." />
     <MESSAGE value="Removed the notification task properties for now until I get the push notifications feature working." />
     <MESSAGE value="#1 Align notifications" />
-    <option name="LAST_COMMIT_MESSAGE" value="#1 Align notifications" />
+    <MESSAGE value="Top secret private information." />
+    <option name="LAST_COMMIT_MESSAGE" value="Top secret private information." />
   </component>
 </project>
