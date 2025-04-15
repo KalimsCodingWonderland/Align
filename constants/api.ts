@@ -4,7 +4,12 @@ const API_BASE = 'https://align-cvy6.onrender.com';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_API_KEY = 'AIzaSyDbUY1_lvjXqjqEq0WAD9kEgd3nB_rArc8'; // Replace with your actual key
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY; // Replace with your actual key
+
+if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not defined in the environment variables.');
+}
+
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export const parseTaskDetails = async (task: any) => {
