@@ -56,7 +56,6 @@ export default function RegisterScreen() {
     const handleRegister = async () => {
         const response = await registerUser(username, email, password);
         if (response.message) {
-            Alert.alert('Success', response.message);
             router.push('/login');
         } else {
             Alert.alert('Error', response.error);
