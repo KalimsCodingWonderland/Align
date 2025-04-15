@@ -60,7 +60,6 @@ export default function LoginScreen() {
             console.log('Login API Response:', response);
             if (response.message && response.token) {
                 await AsyncStorage.setItem('token', response.token);
-                Alert.alert('Success', response.message);
                 router.push('/taskManagment');
             } else {
                 Alert.alert('Error', response.error || 'Invalid credentials');
