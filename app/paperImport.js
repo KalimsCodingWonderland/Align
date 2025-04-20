@@ -437,6 +437,20 @@ export default function PaperImportScreen() {
         setCurrentManual(null);
 
         try {
+            // 1️⃣ Request permissions
+            const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (useCamera && cameraStatus !== 'granted') {
+                Alert.alert('Permission required', 'Camera access is needed to take photos.');
+                setLoading(false);
+                return;
+            }
+            if (!useCamera && mediaStatus !== 'granted') {
+                Alert.alert('Permission required', 'Photo library access is needed to choose images.');
+                setLoading(false);
+                return;
+            }
             // Updated options: disallow cropping
             const options = {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,

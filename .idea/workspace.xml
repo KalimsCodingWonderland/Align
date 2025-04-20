@@ -7,6 +7,8 @@
     <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Top secret private information.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,12 +37,12 @@
     &quot;assignee&quot;: &quot;KalimsCodingWonderland&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/KalimsCodingWonderland/Align.git&quot;,
-    &quot;accountId&quot;: &quot;f23f3bbd-5519-4e42-a5bb-d377eaa9f023&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/KalimsCodingWonderland/Align.git",
+    "accountId": "a0c9f1f7-e7e7-4b54-9abf-0d91d39618ac"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -64,7 +66,7 @@
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "ts.external.directory.path": "C:\\Users\\kalim\\WebstormProjects\\Align\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "C:\\Users\\kalim\\OneDrive\\Documents\\GitHub\\Align\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -117,6 +119,7 @@
       <workItem from="1744413903863" duration="9481000" />
       <workItem from="1744679422135" duration="677000" />
       <workItem from="1744680114787" duration="819000" />
+      <workItem from="1745191455227" duration="1260000" />
     </task>
     <task id="LOCAL-00012" summary="Back to locally hosted DB.">
       <option name="closed" value="true" />
