@@ -885,16 +885,39 @@ export default function CalendarScreen() {
             reminderOffset: editReminderOffset,
             completionTime: editDuration,
             recurrence: recurrenceType !== 'none' ? {
+
                 type: recurrenceType,
+
                 daysOfWeek: (recurrenceType === 'weekly' || recurrenceType === 'custom') ? recurrenceDays : undefined,
+
                 interval: recurrenceInterval >= 1 ? recurrenceInterval : 1,
+
                 endType: recurrenceEndType,
-                endDate: recurrenceEndType === 'date' ? (recurrenceEndDate ? new Date((recurrenceEndDate.getFullYear(), recurrenceEndDate.getMonth(), recurrenceEndDate.getDate())).toISOString().split('T')[0] : undefined) : undefined,
-                occurrences: recurrenceEndType === 'count' ? (recurrenceOccurrences > 0 ? recurrenceOccurrences : undefined) : undefined
+
+                endDate: recurrenceEndType === 'date'
+
+                    ? (recurrenceEndDate
+
+                        ? recurrenceEndDate.toISOString().split('T')[0]
+
+                        : undefined)
+
+                    : undefined,
+
+                occurrences: recurrenceEndType === 'count'
+
+                    ? (recurrenceOccurrences > 0 ? recurrenceOccurrences : undefined)
+
+                    : undefined
+
             } : null,
+
             isRecurring: recurrenceType !== 'none',
+
             predicted: false,
+
         };
+
 
         try {
             const otherTasks = tasks.filter(t => t._id !== taskToEdit._id);
