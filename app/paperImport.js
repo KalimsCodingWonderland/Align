@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 // Import API helpers
-import { getTasks, parseImageTasks, parseTaskDetails, addTask } from '../constants/api';
+import { API_BASE, getTasks, parseImageTasks, parseTaskDetails, addTask } from '../constants/api';
 // Import recurrence helper for expanding recurring tasks
 import { generateRecurringTasks } from '../constants/recurrence';
 
@@ -26,7 +26,7 @@ import { generateRecurringTasks } from '../constants/recurrence';
 // ------------------------
 
 const normalizeDuration = (durationStr) => {
-    if (!durationStr) return "DEFAULT";
+    if (!durationStr || durationStr === "DEFAULT") return "DEFAULT";
     if (durationStr.includes(':')) {
         const [h, m] = durationStr.split(':');
         const hours = Number(h).toString().padStart(2, '0');
@@ -451,14 +451,14 @@ export default function PaperImportScreen() {
                 setLoading(false);
                 return;
             }
-            // Updated options: disallow cropping
+
+            // 2️⃣ Pick or take the photo
             const options = {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: false,
                 quality: 0.8,
                 base64: true,
             };
-
             const result = useCamera
                 ? await ImagePicker.launchCameraAsync(options)
                 : await ImagePicker.launchImageLibraryAsync(options);
@@ -466,23 +466,24 @@ export default function PaperImportScreen() {
             if (!result.canceled) {
                 const image = result.assets[0];
                 setSelectedImage(image.uri);
+
+                // 3️⃣ OCR → array of “Task: …” lines
                 const base64 = image.base64;
                 const taskTexts = await parseImageTasks(base64);
                 const token = await AsyncStorage.getItem('token');
+
                 let importedTasks = [];
                 let queuedManuals = [];
-                // Create a local accumulator for conflict checking that includes newly added tasks in this batch
+                // local copy of tasks for conflict checking
                 let updatedTasks = [...allTasks];
 
-                // Loop through each OCR line.
-                // The regex now also captures a Recurrence field.
                 for (const line of taskTexts) {
                     try {
+                        // parse out each field from the OCR line
                         const match = line.match(
                             /Task:\s*([^|]+)\|\s*Date:\s*([^|]+)\|\s*Time:\s*([^|]+)\|\s*Duration:\s*([^|]+)\|\s*Recurrence:\s*(.*)/i
                         );
                         if (!match) {
-                            console.error('OCR line did not match expected format:', line);
                             importedTasks.push({
                                 text: line,
                                 success: false,
@@ -498,41 +499,80 @@ export default function PaperImportScreen() {
                         rawDuration = rawDuration.trim();
                         rawRecurrence = rawRecurrence.trim();
 
-                        // Include recurrence info in the typed string so parseTaskDetails can extract it.
+                        // turn it back into a natural‐language string for your LLM parser
                         const recurrencePhrase = rawRecurrence.toLowerCase() === 'none'
                             ? 'with no recurrence'
                             : `with recurrence ${rawRecurrence}`;
-
                         const typedString = `${desc} on ${rawDate} at ${rawTime} for ${rawDuration} ${recurrencePhrase}`;
+
                         const details = await parseTaskDetails(typedString);
+
+                        // normalize whatever the LLM returned into HH:MM or DEFAULT
                         let normalized = normalizeDuration(details.duration);
                         if (normalized === "00:00") normalized = "DEFAULT";
 
-                        const isoDate = new Date(`${details.scheduled_date}T${details.scheduled_time}:00`).toISOString();
+                        // ── NEW: if still DEFAULT, ask our ML service ──
+                        let predicted = false;
+                        if (normalized === "DEFAULT") {
+                            try {
+                                const mlRes = await fetch('https://alignml.onrender.com/ml/predict', {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                    body: JSON.stringify({
+                                        category: details.category,
+                                    }),
+                                });
+                                const mlData = await mlRes.json();
+                                if (mlData.predicted_duration) {
+                                    const mins = mlData.predicted_duration;
+                                    const hrs = Math.floor(mins / 60);
+                                    const minsRem = mins % 60;
+                                    normalized = `${hrs.toString().padStart(2, "0")}:${minsRem
+                                        .toString()
+                                        .padStart(2, "0")}`;
+                                    predicted = true;
+                                }
+                            } catch (err) {
+                                // leave normalized as DEFAULT if it fails
+                            }
+                        }
+                        // ────────────────────────────────────────────────
 
-                        // If the OCR/parsing returns "MANUAL", queue it for manual category selection
+                        const isoDate = new Date(
+                            `${details.scheduled_date}T${details.scheduled_time}:00`
+                        ).toISOString();
+
+                        // queue manuals for category selection
                         if (details.category === "MANUAL") {
                             queuedManuals.push({
                                 text: desc,
                                 date: isoDate,
                                 duration: normalized,
-                                recurrence: details.recurrence, // include recurrence info
+                                recurrence: details.recurrence,
                             });
                             continue;
                         }
 
-                        // Build the new task object including recurrence details
+                        // build the final task object
                         const newTask = {
                             text: desc,
                             category: details.category,
                             time: normalized,
                             date: isoDate,
                             recurrence: details.recurrence,
-                            isRecurring: details.recurrence && details.recurrence.type !== 'none',
+                            isRecurring: details.recurrence && details.recurrence.type !== "none",
+                            predicted,    // your UI will show “🤖 AI” if true
                         };
 
-                        // Check for conflicts (including sleep) using the local accumulator updatedTasks
-                        const conflicts = await getConflictingTasks(new Date(newTask.date), newTask.time, updatedTasks);
+                        // conflict check, smart‐align, add to backend, etc.
+                        const conflicts = await getConflictingTasks(
+                            new Date(newTask.date),
+                            newTask.time,
+                            updatedTasks
+                        );
                         if (conflicts.length > 0) {
                             const decision = await showConflictsAlert(newTask, conflicts);
                             if (decision === "cancel") {
@@ -543,24 +583,22 @@ export default function PaperImportScreen() {
                                 });
                                 continue;
                             } else if (decision === "smart") {
-                                const smartAlignedTask = await smartAlignTask(newTask, updatedTasks);
-                                if (smartAlignedTask) {
-                                    newTask.date = smartAlignedTask.date;
+                                const smartAligned = await smartAlignTask(newTask, updatedTasks);
+                                if (smartAligned) {
+                                    newTask.date = smartAligned.date;
                                 } else {
                                     importedTasks.push({
                                         text: desc,
                                         success: true,
-                                        error: 'Smart Align failed to find a slot.',
+                                        error: 'Smart Align failed.',
                                     });
                                     continue;
                                 }
                             }
                         }
 
-                        // Add the task to the DB (and later to UI)
                         const response = await addTask(newTask, token);
                         if (response._id) {
-                            // Update both the state and the local tasks accumulator
                             updatedTasks.push(response);
                             setAllTasks(prev => [...prev, response]);
                         }
@@ -583,8 +621,7 @@ export default function PaperImportScreen() {
                 setResults(importedTasks);
                 setManualQueue(queuedManuals);
                 setCurrentManual(queuedManuals[0] || null);
-                const anySuccess = importedTasks.some(r => r.success);
-                setImportSuccess(anySuccess);
+                setImportSuccess(importedTasks.some(r => r.success));
             }
         } catch (err) {
             console.error('Error during image processing:', err);

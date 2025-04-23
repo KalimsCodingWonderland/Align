@@ -107,7 +107,7 @@ STRICT RULES:
 3. Each task must be on a separate line — exactly one line per task.
 4. Dates should be in YYYY-MM-DD format. If not specified, use today’s date (${todayDate}).
 5. Time must be 24-hour HH:MM format. If not specified, use "12:00".
-6. Duration must be human-readable like "1 hour 30 minutes" or "45 minutes".
+6. Duration must be human-readable like "1 hour 30 minutes" or "45 minutes". If not specified, use "DEFAULT".
 7. Recurrence must be:
    - "none" if not recurring
    - A valid string if recurring, e.g., {"type":"weekly","daysOfWeek":[1,3],"interval":1,"endType":"never"}
