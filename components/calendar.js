@@ -1,10 +1,8 @@
-// components/calendar.js
 import React from 'react';
-import {View, Text, FlatList, TouchableOpacity} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { useTheme } from '../app/ThemeContext';
 import { styles } from '../app/styles';
-import { generateRecurringTasks } from "../constants/recurrence";
-
 
 const CalendarViewTab = ({
                              getMarkedDates,
@@ -14,90 +12,92 @@ const CalendarViewTab = ({
                              renderTaskItem,
                              getLocalDateKey,
                          }) => {
+    const { theme } = useTheme();
+    const isDark     = theme.mode === 'dark';
+    const calendarBg = isDark ? '#000' : '#fff';
+
+
+
+
     return (
-        <View style={styles.calendarContainer}>
+        <View style={[styles.calendarContainer, { backgroundColor: calendarBg }]}>
             <Calendar
+                /* ▶ 1 */
+                key={theme.mode}
+                /* ▶ 2 */
+                style={{ backgroundColor: calendarBg }}
                 markedDates={getMarkedDates()}
                 onDayPress={(day) => setSelectedDate(day.dateString)}
                 theme={{
-                    todayTextColor: '#ff0000',
-                    selectedDayBackgroundColor: 'transparent',
-                    selectedDayTextColor: '#fff400',
-                    arrowColor: '#007aff',
-                    dotColor: '#9f00ff',
-                    todayDotColor: '#00ceff',
+                    backgroundColor:       calendarBg,
+                    calendarBackground:    calendarBg,
+                    textSectionTitleColor: isDark ? '#aaa' : '#999',
+                    dayTextColor:          theme.text,
+                    todayTextColor:        '#fff',
+                    selectedDayBackgroundColor: theme.primary,
+                    selectedDayTextColor:  '#fff',
+                    arrowColor:            theme.primary,
+                    monthTextColor:        theme.text,
+                    textDisabledColor:     isDark ? '#555' : '#ccc',
+                    dotColor:              theme.primary,
+                    todayDotColor:         '#fff',
                 }}
-                renderHeader={(date) => {
-                    const formatted = new Date(date).toLocaleDateString('en-US', {
-                        month: 'long',
-                        year: 'numeric',
-                    });
-                    return (
-                        <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 10 }}>
-                            {formatted}
-                        </Text>
-                    );
-                }}
+                renderHeader={(date) => (
+                    <Text
+                        style={{
+                            fontSize: 18,
+                            fontWeight: '600',
+                            textAlign: 'center',
+                            paddingVertical: 10,
+                            color: theme.text,
+                        }}>
+                        {new Date(date).toLocaleDateString('en-US', {
+                            month: 'long',
+                            year:  'numeric',
+                        })}
+                    </Text>
+                )}
                 dayComponent={({ date, state, marking, onPress }) => {
-                    const dateStr = date.dateString;
-                    const isToday = dateStr === new Date().toLocaleDateString('en-CA');
+                    const dateStr    = date.dateString;
+                    const isToday    = dateStr === new Date().toISOString().split('T')[0];
                     const isSelected = dateStr === selectedDate;
-
-                    let backgroundColor = 'transparent';
-                    let textColor = '#2d4150';
-
-                    if (isToday) {
-                        backgroundColor = '#ff3b30'; // red
-                        textColor = '#fff';
-                    }
-
-                    if (isSelected) {
-                        backgroundColor = '#007aff'; // blue
-                        textColor = '#fff';
-                    }
+                    const bg         = isSelected
+                        ? theme.primary
+                        : isToday ? '#ff453a' : 'transparent';
+                    const txtColor   = isSelected || isToday ? '#fff'
+                        : state === 'disabled'
+                            ? (isDark ? '#555' : '#ccc')
+                            : theme.text;
 
                     return (
                         <TouchableOpacity
-                            style={[
-                                styles.calendarDayContainer,
-                                {
-                                    backgroundColor,
-                                },
-                            ]}
-                            onPress={() => onPress(date)}
-                        >
-                            <Text style={{
-                                color: state === 'disabled' ? '#c8c8c8' : textColor,
-                                fontWeight: '600',
-                            }}>
-                                {date.day}
-                            </Text>
+                            style={[styles.calendarDayContainer, { backgroundColor: bg }]}
+                            onPress={() => onPress(date)}>
+                            <Text style={{ color: txtColor, fontWeight: '600' }}>{date.day}</Text>
                             {marking?.marked && (
-                                <View style={{
-                                    width: 5,
-                                    height: 5,
-                                    borderRadius: 2.5,
-                                    backgroundColor: marking.dotColor || '#007aff',
-                                    marginTop: 2,
-                                }} />
+                                <View
+                                    style={{
+                                        width: 5,
+                                        height: 5,
+                                        borderRadius: 2.5,
+                                        backgroundColor: marking.dotColor || theme.primary,
+                                        marginTop: 2,
+                                    }}
+                                />
                             )}
                         </TouchableOpacity>
                     );
                 }}
             />
-            {(
-                <FlatList
-                    contentContainerStyle={{ marginTop: 20, paddingBottom: 60 }}
-                    data={tasks
-                        .filter((task) => getLocalDateKey(task.date) === selectedDate)
-                        .sort((a, b) => new Date(a.date) - new Date(b.date))
-                    }
-                    keyExtractor={(item) => item._id || Math.random().toString()}
-                    renderItem={({ item, index }) =>
-                        renderTaskItem({ item, index, showFullDate: false })
-                    }
-                />
-            )}
+
+            <FlatList
+                contentContainerStyle={{ marginTop: 20, paddingBottom: 60 }}
+                data={tasks
+                    .filter((t) => getLocalDateKey(t.date) === selectedDate)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))}
+                keyExtractor={(item) => item._id || Math.random().toString()}
+                renderItem={({ item, index }) => renderTaskItem({ item, index })}
+            />
         </View>
     );
 };

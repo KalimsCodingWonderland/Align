@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
     container: {
-        top: 40,
+        paddingTop: 80,
         flex: 1,
         padding: 20,
         backgroundColor: '#f5f6fa',
@@ -472,11 +472,12 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     tabBar: {
+        paddingTop: 30,
         position: 'absolute',
         bottom: -60,  // Raised slightly for better visibility
         left: 20,
         right: 20,
-        height: 200,
+        height: 170,
         backgroundColor: 'white',  // Solid white background
         borderRadius: 24,  // Rounded corners
         shadowColor: '#000',

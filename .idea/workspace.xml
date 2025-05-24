@@ -5,12 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a807b884-67e2-42b2-9047-4f230fa9fcb8" name="Changes" comment="Fixed Paper Import.">
+      <change afterPath="$PROJECT_DIR$/app/ThemeContext.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/AlignIntroDarkMode.mp4" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/ThemeToggle.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/explore.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/alignSleep.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/alignSleep.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dailySummarySettings.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/dailySummarySettings.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/login.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/login.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/paperImport.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/paperImport.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/register.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/register.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/splash.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/splash.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/styles.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/taskManagment.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/taskManagment.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/userAuth.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/userAuth.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AnimatedInput.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/AnimatedInput.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/addTask.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/addTask.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/calendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/calendar.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/listView.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/listView.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,7 +42,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="NiharBranch" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -57,30 +71,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/kalim/WebstormProjects/Align/constants&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\kalim\\WebstormProjects\\Align\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "KalimBranch",
+    "last_opened_file_path": "C:/Users/kalim/WebstormProjects/Align/constants",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "ts.external.directory.path": "C:\\Users\\kalim\\WebstormProjects\\Align\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\kalim\WebstormProjects\Align\constants" />
       <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
       <recent name="C:\Users\kalim\WebstormProjects\Align\components" />
       <recent name="C:\Users\kalim\WebstormProjects\Align\constants" />
-      <recent name="C:\Users\kalim\WebstormProjects\Align\assets" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -547,7 +561,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Succesfully deployed a ML Random Forest Regressor to learn from users historical data of tasks based on their category and predict accurate completion times for the task when one isnt provided by the user. Implemented a human in the loop edit modal for this ML prediction where the user can either affirm or reject and update it to refine the models predictions. Styled the components with consistent coloring etc." />
     <MESSAGE value="Trying to fix ML Model training requirments." />
     <MESSAGE value="Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead." />
     <MESSAGE value=" #2 Trying to fix bug where the ML model is not ONLY used when no duration is provided since the default was 30 min if the user provided a duration fo 30 min the ML model was used. Trying to fix this by making the default &quot;DEFAULT&quot; instead." />
@@ -572,6 +585,7 @@
     <MESSAGE value="#1 Align notifications" />
     <MESSAGE value="Top secret private information." />
     <MESSAGE value="Fixed Paper Import." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed Paper Import." />
+    <MESSAGE value="Updated dependencies, fixed calendar picker header formatting caused by updated dependencies." />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated dependencies, fixed calendar picker header formatting caused by updated dependencies." />
   </component>
 </project>

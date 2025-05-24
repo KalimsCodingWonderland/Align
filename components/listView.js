@@ -2,10 +2,13 @@
 
 import React from 'react';
 import { Text, SectionList } from 'react-native';
+import { useTheme } from '../app/ThemeContext';
 import { styles } from '../app/styles';
-import {generateRecurringTasks} from "../constants/recurrence";
+import { generateRecurringTasks } from '../constants/recurrence';
 
 const ListViewTab = ({ groupTasksByDate, renderTaskItem }) => {
+    const { theme } = useTheme();
+
     return (
         <SectionList
             contentContainerStyle={{ paddingBottom: 120 }}
@@ -16,7 +19,12 @@ const ListViewTab = ({ groupTasksByDate, renderTaskItem }) => {
             }
             renderSectionHeader={({ section: { title } }) => (
                 <Text
-                    style={styles.sectionHeader}>{title}
+                    style={[
+                        styles.sectionHeader,
+                        theme.mode === 'dark' && { backgroundColor: '#5f2493' }
+                    ]}
+                >
+                    {title}
                 </Text>
             )}
         />

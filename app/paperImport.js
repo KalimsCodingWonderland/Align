@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from './ThemeContext';
 // Import API helpers
 import { API_BASE, getTasks, parseImageTasks, parseTaskDetails, addTask } from '../constants/api';
 // Import recurrence helper for expanding recurring tasks
@@ -348,6 +349,9 @@ const showConflictsAlertForFeedback = (newTask, conflicts) => {
 // ------------------------
 
 export default function PaperImportScreen() {
+    const { theme } = useTheme();
+    const isDark  = theme.mode === 'dark';
+    const fg      = (l, d = l) => (isDark ? d : l);
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState([]);
     const [error, setError] = useState('');
@@ -634,11 +638,15 @@ export default function PaperImportScreen() {
 
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: fg('#fff', '#000') }]}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <MaterialIcons name="arrow-back" size={24} color="#007AFF" />
+                <MaterialIcons name="arrow-back" size={24} color={theme.primary} />
             </TouchableOpacity>
-            <Text style={styles.title}>Scan Paper Schedule</Text>
+
+            <Text style={[styles.title, { color: fg('#333', '#f5f6fa') }]}>
+                Scan Paper Schedule
+            </Text>
+
             {selectedImage && (
                 <Image
                     source={{ uri: selectedImage }}
@@ -646,50 +654,75 @@ export default function PaperImportScreen() {
                     resizeMode="contain"
                 />
             )}
+
+            {/*  buttons  */}
             <View style={styles.buttonGroup}>
                 <TouchableOpacity
                     style={[styles.button, styles.cameraButton]}
                     onPress={() => pickImage(true)}
                     disabled={loading}
                 >
-                    <MaterialIcons name="camera-alt" size={24} color="white" />
-                    <Text style={styles.buttonText}>Take Photo</Text>
+                    <MaterialIcons name="camera-alt" size={24} color="#fff" />
+                    <Text style={[styles.buttonText]}>Take Photo</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                     style={[styles.button, styles.galleryButton]}
                     onPress={() => pickImage(false)}
                     disabled={loading}
                 >
-                    <MaterialIcons name="photo-library" size={24} color="white" />
-                    <Text style={styles.buttonText}>Choose from Gallery</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialIcons name="photo-library" size={20} color="#fff" />
+                        <Text style={[styles.buttonText, { marginLeft: 6 }]}>Choose from{'\n'}Gallery</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
-            {loading && <ActivityIndicator size="large" color="#007AFF" />}
+
+            {loading && <ActivityIndicator size="large" color={theme.primary} />}
+
+            {/* result icon + message */}
             <View style={styles.resultsContainer}>
-                {importSuccess === true && <Text style={styles.successIcon}>✓</Text>}
+                {importSuccess === true && (
+                    <Text style={[styles.successIcon, { color: fg('#4CAF50', '#34c759') }]}>✓</Text>
+                )}
                 {importSuccess === false && (
                     <>
-                        <Text style={styles.errorIcon}>✕</Text>
-                        <Text style={styles.error}>{error}</Text>
+                        <Text style={[styles.errorIcon, { color: fg('#f44336', '#ff453a') }]}>✕</Text>
+                        <Text style={[styles.error, { color: fg('#f44336', '#ff453a') }]}>{error}</Text>
                     </>
                 )}
             </View>
-            {/* Manual Category Modal */}
-            <Modal visible={!!currentManual} transparent={true}>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>This task has no category:</Text>
-                        <Text style={{ marginBottom: 10 }}>{currentManual?.text}</Text>
-                        <ScrollView>
+
+            {/* ---------- MANUAL CATEGORY MODAL ---------- */}
+            <Modal visible={!!currentManual} transparent>
+                <View style={styles.modalBackdrop}>
+                    <View
+                        style={[
+                            styles.modalContent,
+                            {
+                                backgroundColor: fg('#fff', '#1c1c1e'),
+                                shadowOpacity: isDark ? 0.6 : 0.15,
+                            },
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.modalTitle,
+                                { color: fg('#1c1c1e', '#f5f6fa') },
+                            ]}
+                        >
+                            This task has no category:
+                        </Text>
+                        <Text
+                            style={{ marginBottom: 10, color: fg('#1c1c1e', '#f5f6fa') }}
+                        >
+                            {currentManual?.text}
+                        </Text>
+
+                        <ScrollView style={{ alignSelf: 'stretch' }}>
                             {[
-                                'STUDY',
-                                'ENTERTAINMENT',
-                                'WORK',
-                                'EVENT',
-                                'ERRAND',
-                                'EXERCISE',
-                                'HOUSEHOLD CHORE',
-                                'OTHER'
+                                'STUDY','ENTERTAINMENT','WORK','EVENT','ERRAND',
+                                'EXERCISE','HOUSEHOLD CHORE','OTHER',
                             ].map((cat) => (
                                 <TouchableOpacity
                                     key={cat}
@@ -707,24 +740,18 @@ export default function PaperImportScreen() {
     );
 }
 
+/* -------------- STYLES --------------- */
 const styles = StyleSheet.create({
     container: {
         top: -20,
         flex: 1,
         paddingTop: 90,
-        padding: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: 20,
     },
-    backButton: {
-        marginBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: '#333',
-        textAlign: 'center',
-    },
+    backButton: { marginBottom: 20 },
+
+    title: { textAlign: 'center', fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+
     buttonGroup: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -733,83 +760,62 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
+        flexDirection: 'row',
+        paddingRight: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 15,
         borderRadius: 10,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
     },
-    cameraButton: {
-        backgroundColor: '#007AFF',
-    },
-    galleryButton: {
-        backgroundColor: '#4CAF50',
-    },
+    cameraButton:  { backgroundColor: '#007AFF' },
+    galleryButton: { backgroundColor: '#4CAF50' },
     buttonText: {
-        color: 'white',
+        color: '#fff',
+        textAlign: 'center',
         fontSize: 16,
         fontWeight: '600',
     },
-    error: {
-        color: 'red',
-        marginTop: 10,
-        textAlign: 'center',
-    },
-    resultsContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    successIcon: {
-        fontSize: 48,
-        color: '#4CAF50',
-        textAlign: 'center',
-        marginTop: 20,
-    },
-    errorIcon: {
-        fontSize: 48,
-        color: '#f44336',
-        textAlign: 'center',
-        marginTop: 20,
-    },
+
+    error: { marginTop: 10, textAlign: 'center' },
+    resultsContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    successIcon: { fontSize: 48, textAlign: 'center', marginTop: 20 },
+    errorIcon:   { fontSize: 48, textAlign: 'center', marginTop: 20 },
+
     previewImage: {
         width: '100%',
         height: 300,
         borderRadius: 10,
         marginBottom: 20,
     },
-    modalContainer: {
+
+    /* ---------- modal ---------- */
+    modalBackdrop: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
-        backgroundColor: 'white',
+        width: '85%',
+        borderRadius: 12,
         padding: 20,
-        borderRadius: 10,
-        width: '80%',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 15,
     },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
+    modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 10 },
+
     categoryButton: {
         backgroundColor: '#007AFF',
-        padding: 10,
+        padding: 12,
         borderRadius: 8,
-        marginVertical: 5,
-        width: '100%',
+        marginVertical: 6,
         alignItems: 'center',
     },
-    categoryText: {
-        color: 'white',
-        fontSize: 16,
-    },
+    categoryText: { color: '#fff', fontSize: 16 },
 });
+
 
 export { formatTaskTime, calculateEndTime, isSameLocalDate, durationToMilliseconds };
