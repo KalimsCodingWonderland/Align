@@ -1,50 +1,54 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { View, TextInput, Animated, StyleSheet } from 'react-native';
 
-const AnimatedInput = forwardRef(({ placeholder, value, onChangeText, secureTextEntry }, ref) => {
-    const [isFocused, setIsFocused] = useState(false);
-    const animatedIsFocused = useRef(new Animated.Value(value === '' ? 0 : 1)).current;
+const AnimatedInput = forwardRef(
+    ({ placeholder, value, onChangeText, secureTextEntry, textInputStyle, ...rest }, ref) => {
+        const [isFocused, setIsFocused] = useState(false);
+        const animatedIsFocused = useRef(new Animated.Value(value === '' ? 0 : 1)).current;
 
-    useEffect(() => {
-        Animated.timing(animatedIsFocused, {
-            toValue: isFocused || value !== '' ? 1 : 0,
-            duration: 200,
-            useNativeDriver: false, // Animating layout properties
-        }).start();
-    }, [isFocused, value]);
+        useEffect(() => {
+            Animated.timing(animatedIsFocused, {
+                toValue: isFocused || value !== '' ? 1 : 0,
+                duration: 200,
+                useNativeDriver: false,
+            }).start();
+        }, [isFocused, value]);
 
-    const labelStyle = {
-        position: 'absolute',
-        left: 0,
-        top: animatedIsFocused.interpolate({
-            inputRange: [0, 1],
-            outputRange: [18, 0],
-        }),
-        fontSize: animatedIsFocused.interpolate({
-            inputRange: [0, 1],
-            outputRange: [16, 12],
-        }),
-        color: animatedIsFocused.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['#aaa', '#007aff'],
-        }),
-    };
+        const labelStyle = {
+            position: 'absolute',
+            left: 0,
+            top: animatedIsFocused.interpolate({
+                inputRange: [0, 1],
+                outputRange: [18, 0],
+            }),
+            fontSize: animatedIsFocused.interpolate({
+                inputRange: [0, 1],
+                outputRange: [16, 12],
+            }),
+            color: animatedIsFocused.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#aaa', '#007aff'],
+            }),
+        };
 
-    return (
-        <View style={styles.container}>
-            <Animated.Text style={labelStyle}>{placeholder}</Animated.Text>
-            <TextInput
-                ref={ref} // Forward the ref to the TextInput
-                value={value}
-                onChangeText={onChangeText}
-                style={styles.input}
-                secureTextEntry={secureTextEntry}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-            />
-        </View>
-    );
-});
+        return (
+            <View style={styles.container}>
+                <Animated.Text style={labelStyle}>{placeholder}</Animated.Text>
+                <TextInput
+                    ref={ref}
+                    value={value}
+                    onChangeText={onChangeText}
+                    secureTextEntry={secureTextEntry}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    style={[styles.input, textInputStyle]} // ✅ Proper merge
+                    {...rest}
+                />
+            </View>
+        );
+    }
+);
+
 
 const styles = StyleSheet.create({
     container: {

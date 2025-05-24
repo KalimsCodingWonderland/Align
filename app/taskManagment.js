@@ -38,6 +38,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from "expo-notifications";
 import {cancelTaskReminder, registerForPushNotificationsAsync, scheduleTaskReminder} from "../constants/notifications";
 import {BlurView} from "expo-blur";
+import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from './ThemeContext';
 
 const categories = [
     'STUDY',
@@ -51,6 +53,8 @@ const categories = [
 ];
 
 // --- HELPER FUNCTIONS (Keep existing helpers: normalizeDuration, formatTaskTime, formatCompletionTime, formatDuration, calculateEndTime, formatSectionDate, formatTaskDate, isSameLocalDate, durationToMilliseconds) ---
+
+
 const normalizeDuration = (durationStr) => {
     if (!durationStr) return "DEFAULT";
     if (durationStr.includes(':')) {
@@ -369,6 +373,17 @@ const showConflictsAlertForFeedback = (newTask, conflicts) => {
 };
 
 export default function CalendarScreen() {
+    const { theme } = useTheme();
+    const isDark    = theme.mode === 'dark';
+    const barBg     = isDark ? '#1c1c1e' : '#ffffff';
+    const barBorder = isDark ? '#2c2c2e' : 'rgba(0,0,0,0.05)';
+    const shadow    = isDark
+        ? { shadowColor:'#000', shadowOpacity:0.6, shadowRadius:8, shadowOffset:{width:0,height:4}, elevation:10 }
+        : { shadowColor:'#000', shadowOpacity:0.12,shadowRadius:6, shadowOffset:{width:0,height:4}, elevation:6 };
+
+    const inactive  = isDark ? '#b0b0b0' : '#8E8E93';
+    const accent    = theme.primary;           // your existing blue
+    const fg = (light, dark = light) => (theme.mode === 'dark' ? dark : light);
     const router = useRouter();
     const [token, setToken] = useState(null);
     const [taskInput, setTaskInput] = useState('');
@@ -1017,31 +1032,26 @@ export default function CalendarScreen() {
 
     const getMarkedDates = () => {
         const todayKey = new Date().toISOString().split('T')[0];
-        const expandedTasks = tasks.flatMap(task => generateRecurringTasks(task));
+        const expandedTasks = tasks.flatMap((task) => generateRecurringTasks(task));
         const markedDates = expandedTasks.reduce((acc, task) => {
             const dateKey = getLocalDateKey(task.date);
             acc[dateKey] = {
                 marked: true,
-                dotColor: '#000000',
+                dotColor: theme.mode === 'dark' ? '#ffffff' : '#000000', // ← flip black / white
             };
             return acc;
         }, {});
 
+        /* highlight today */
         markedDates[todayKey] = {
             ...(markedDates[todayKey] || {}),
             customStyles: {
-                container: {
-                    borderColor: '#ff6347',
-                    borderWidth: 1.5,
-                    borderRadius: 18,
-                },
-                text: {
-                    color: '#ff6347',
-                    fontWeight: 'bold',
-                },
+                container: { borderColor: '#ff6347', borderWidth: 1.5, borderRadius: 18 },
+                text: { color: '#ff6347', fontWeight: 'bold' },
             },
         };
 
+        /* highlight the date user tapped */
         if (selectedDate) {
             markedDates[selectedDate] = {
                 ...(markedDates[selectedDate] || {}),
@@ -1049,14 +1059,8 @@ export default function CalendarScreen() {
                 selectedColor: '#007aff',
                 selectedTextColor: '#ffffff',
                 customStyles: {
-                    container: {
-                        backgroundColor: '#007aff',
-                        borderRadius: 18,
-                    },
-                    text: {
-                        color: '#ffffff',
-                        fontWeight: 'bold',
-                    },
+                    container: { backgroundColor: '#007aff', borderRadius: 18 },
+                    text: { color: '#ffffff', fontWeight: 'bold' },
                 },
             };
         }
@@ -1293,28 +1297,23 @@ export default function CalendarScreen() {
     </Modal>;
 
     const renderTaskItem = ({ item }) => {
-        // Unique ID to track crossing
         const id = item._id || `local_${item.text}`;
         const isCrossed = crossedOffMap[id] === true;
         const finalWidth = textWidths[id] || 0;
 
-        // Ensure we have all Animated.Values: lineAnim, textOpacity, and scaleAnim
         if (!crossOffRefs.current[id]) {
             crossOffRefs.current[id] = {
                 lineAnim: new Animated.Value(0),
                 textOpacity: new Animated.Value(1),
-                scaleAnim: new Animated.Value(1)
+                scaleAnim: new Animated.Value(1),
             };
         }
         const { lineAnim, textOpacity, scaleAnim } = crossOffRefs.current[id];
 
-        // Decide how to handle press:
         const handlePress = () => {
             if (activeView === 'tasks') {
-                // We are in Manage Tasks => open the edit modal
                 handleEditTask(item);
             } else {
-                // We are on List or Calendar => toggle strike-through
                 handleCrossOff(item);
             }
         };
@@ -1322,7 +1321,8 @@ export default function CalendarScreen() {
         return (
             <TouchableOpacity activeOpacity={0.7} onPress={handlePress}>
                 <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                    <View style={styles.taskItem}>
+                    <View style={[styles.taskItem, { backgroundColor: theme.card }]}>
+                    {/* description + strike-through */}
                         <View
                             style={{ alignSelf: 'flex-start' }}
                             onLayout={(e) => {
@@ -1333,10 +1333,9 @@ export default function CalendarScreen() {
                             <Animated.Text
                                 style={[
                                     styles.taskText,
-                                    { opacity: textOpacity },
-                                    isCrossed && styles.crossedText
-                                ]}
-                            >
+                                    { opacity: textOpacity, color: fg('#1c1c1e', '#f5f6fa') },
+                                    isCrossed && styles.crossedText,
+                                ]}>
                                 {item.text}
                             </Animated.Text>
                             <Animated.View
@@ -1347,24 +1346,26 @@ export default function CalendarScreen() {
                                         backgroundColor: getCategoryColor(item.category),
                                         opacity: lineAnim.interpolate({
                                             inputRange: [0, finalWidth],
-                                            outputRange: [0, 1]
-                                        })
-                                    }
+                                            outputRange: [0, 1],
+                                        }),
+                                    },
                                 ]}
                             />
                         </View>
 
+                        {/* time range */}
                         <View style={styles.timeRangeContainer}>
-                            <Text style={styles.timeRangeText}>
+                            <Text style={[styles.timeRangeText, { color: fg('#666', '#a1a1a4') }]}>
                                 🕒 {formatTaskTime(item.date)}
                             </Text>
                             {item.time !== 'DEFAULT' && (
-                                <Text style={styles.timeRangeText}>
+                                <Text style={[styles.timeRangeText, { color: fg('#666', '#a1a1a4') }]}>
                                     → {calculateEndTime(item.date, item.time)}
                                 </Text>
                             )}
                         </View>
 
+                        {/* meta row */}
                         <View style={styles.taskDetails}>
                             <Text
                                 style={[
@@ -1372,31 +1373,36 @@ export default function CalendarScreen() {
                                     {
                                         backgroundColor:
                                             item.category === 'SLEEP'
-                                                ? '#000'
-                                                : getCategoryColor(item.category)
-                                    }
+                                                ? theme.mode === 'dark'
+                                                    ? '#ffffff' // light badge on dark
+                                                    : '#000000' // dark badge on light
+                                                : getCategoryColor(item.category),
+                                        color:
+                                            item.category === 'SLEEP'
+                                                ? theme.mode === 'dark'
+                                                    ? '#000'
+                                                    : '#fff'
+                                                : 'white',
+                                    },
                                 ]}
                             >
                                 {item.category?.toLowerCase() || 'other'}
                             </Text>
-                            <Text style={styles.timeText}>
+                            <Text style={[styles.timeText, { color: fg('#666', '#a1a1a4') }]}>
                                 ⏱ {formatDuration(item.completionTime || item.time)}
                             </Text>
                             {item.predicted && (
-                                <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>
-                                    🤖 AI
-                                </Text>
+                                <Text style={{ marginLeft: 10, fontSize: 12, color: 'purple' }}>🤖 AI</Text>
                             )}
                         </View>
 
+                        {/* feedback button */}
                         {item.predicted && item.category !== 'SLEEP' && (
                             <TouchableOpacity
                                 style={styles.feedbackTriggerButton}
                                 onPress={() => handleFeedback(item)}
                             >
-                                <Text style={styles.feedbackTriggerButtonText}>
-                                    Was AI duration right?
-                                </Text>
+                                <Text style={styles.feedbackTriggerButtonText}>Was AI duration right?</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -1441,7 +1447,7 @@ export default function CalendarScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <Modal visible={showCategoryModal} transparent={true} animationType="fade">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
@@ -1500,12 +1506,33 @@ export default function CalendarScreen() {
                     <Text style={styles.notiSettingsText}>Notification Settings</Text>
                 </TouchableOpacity>
                 <View style={styles.menuDivider} />
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={handleLogout}
+                <View
+                    style={[
+                        styles.menuItem,
+                        {
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                        },
+                    ]}
                 >
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity onPress={handleLogout}>
+                        <Text style={styles.logoutText}>Logout</Text>
+                    </TouchableOpacity>
+
+                    {/* Divider and Toggle Container */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View
+                            style={{
+                                width: 1,
+                                height: 30,
+                                backgroundColor: '#ccc',
+                                marginHorizontal: 20,
+                            }}
+                        />
+                        <ThemeToggle />
+                    </View>
+                </View>
                 <View style={styles.menuDivider} />
                 <TouchableOpacity
                     style={styles.menuItem}
@@ -1513,55 +1540,98 @@ export default function CalendarScreen() {
                 >
                     <Text style={styles.createNewAccText}>Create New Account</Text>
                 </TouchableOpacity>
+
             </Animated.View>
 
-            <Modal visible={editingTask !== null} transparent={true} animationType="slide">
-                <View style={styles.modalContainer}>
-                    <View style={styles.editModalContent}>
+            <Modal visible={editingTask !== null} transparent animationType="slide">
+                {/* dimmed overlay */}
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center' }}>
+                    {/* modal card */}
+                    <View
+                        style={[
+                            styles.editModalContent,
+                            {
+                                backgroundColor: fg('#FFFFFF', '#1C1C1E'),
+                                borderRadius: 18,
+                                borderWidth: 1,
+                                borderColor: fg('rgba(0,0,0,0.06)', 'rgba(255,255,255,0.08)'),
+                                shadowColor: '#000',
+                                shadowOpacity: theme.mode === 'dark' ? 0.6 : 0.12,
+                                shadowRadius: theme.mode === 'dark' ? 14 : 8,
+                                shadowOffset: { width: 0, height: 8 },
+                                elevation: 20,
+                            },
+                        ]}
+                    >
+                        {/* ✖ */}
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={() => setEditingTask(null)}
                             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                         >
-                            <Text style={styles.closeButtonText}>×</Text>
+                            <Text style={[styles.closeButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>×</Text>
                         </TouchableOpacity>
+
                         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-                            <Text style={styles.modalTitle}>Edit Task</Text>
-                            <Text style={styles.label}>Task Description</Text>
+                            {/* ───────── TITLE & DESCRIPTION ───────── */}
+                            <Text style={[styles.modalTitle, { color: fg('#1C1C1E', '#F2F2F7') }]}>Edit Task</Text>
+
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Task Description</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[
+                                    styles.input,
+                                    { backgroundColor: fg('#F2F2F7', '#2C2C2E'), color: fg('#1C1C1E', '#F5F5F7') },
+                                ]}
+                                placeholder="Edit task description"
+                                placeholderTextColor={fg('#8E8E93', '#8E8E93')}
                                 value={editTaskInput}
                                 onChangeText={setEditTaskInput}
-                                placeholder="Edit task description"
                             />
 
+                            {/* ───────── RECURRENCE ───────── */}
                             <View style={styles.recurrenceContainer}>
-                                <Text style={styles.sectionTitle}>Recurrence</Text>
+                                <Text style={[styles.sectionTitle, { color: fg('#1C1C1E', '#F2F2F7') }]}>Recurrence</Text>
+
                                 <TouchableOpacity
-                                    style={styles.selectionButton}
+                                    style={[
+                                        styles.selectionButton,
+                                        { backgroundColor: fg('#FFFFFF', '#2C2C2E'), borderColor: fg('#E5E5EA', '#3A3A3C') },
+                                    ]}
                                     onPress={() => setShowRecurrenceTypePicker(true)}
                                 >
-                                    <Text style={styles.selectionButtonText}>
+                                    <Text style={[styles.selectionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
                                         {recurrenceType.charAt(0).toUpperCase() + recurrenceType.slice(1)}
                                     </Text>
-                                    <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                    <Text style={[styles.selectionButtonIcon, { color: fg('#8E8E93', '#8E8E93') }]}>
+                                        ⌄
+                                    </Text>
                                 </TouchableOpacity>
 
+                                {/* ▼ Recurrence-TYPE Picker  (bottom sheet) */}
                                 <Modal visible={showRecurrenceTypePicker} transparent animationType="slide">
-                                    <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
-                                        <View style={styles.pickerModalContent}>
+                                    <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end' }]}>
+                                        <View
+                                            style={[
+                                                styles.pickerModalContent,
+                                                { backgroundColor: fg('#FFFFFF', '#1C1C1E') },
+                                            ]}
+                                        >
                                             <View style={styles.pickerHeader}>
-                                                <Text style={styles.pickerTitle}>Repeat Pattern</Text>
+                                                <Text style={[styles.pickerTitle, { color: fg('#1C1C1E', '#F2F2F7') }]}>
+                                                    Repeat Pattern
+                                                </Text>
                                                 <TouchableOpacity onPress={() => setShowRecurrenceTypePicker(false)}>
-                                                    <Text style={styles.pickerDoneButton}>Done</Text>
+                                                    <Text style={[styles.pickerDoneButton, { color: theme.primary }]}>Done</Text>
                                                 </TouchableOpacity>
                                             </View>
+
                                             <Picker
                                                 selectedValue={recurrenceType}
-                                                onValueChange={(value) => {
-                                                    setRecurrenceType(value);
-                                                    if (value === 'none') setRecurrenceEndType('never');
+                                                onValueChange={(v) => {
+                                                    setRecurrenceType(v);
+                                                    if (v === 'none') setRecurrenceEndType('never');
                                                 }}
+                                                style={{ color: fg('#1C1C1E', '#F2F2F7') }}
                                             >
                                                 <Picker.Item label="No Recurrence" value="none" />
                                                 <Picker.Item label="Daily" value="daily" />
@@ -1573,145 +1643,198 @@ export default function CalendarScreen() {
                                     </View>
                                 </Modal>
 
+                                {/* WEEKLY / CUSTOM day toggles */}
                                 {(recurrenceType === 'weekly' || recurrenceType === 'custom') && (
                                     <View style={styles.formGroup}>
-                                        <Text style={styles.label}>Repeat On</Text>
+                                        <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Repeat On</Text>
                                         <View style={styles.daysGrid}>
-                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                                                <TouchableOpacity
-                                                    key={day}
-                                                    style={[
-                                                        styles.dayButton,
-                                                        recurrenceDays.includes(index) && styles.selectedDay,
-                                                    ]}
-                                                    onPress={() => {
-                                                        const updated = recurrenceDays.includes(index)
-                                                            ? recurrenceDays.filter((d) => d !== index)
-                                                            : [...recurrenceDays, index].sort((a, b) => a - b);
-                                                        setRecurrenceDays(updated);
-                                                    }}
-                                                >
-                                                    <Text
+                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, idx) => {
+                                                const sel = recurrenceDays.includes(idx);
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={d}
                                                         style={[
-                                                            styles.dayText,
-                                                            recurrenceDays.includes(index) && styles.selectedDayText,
+                                                            styles.dayButton,
+                                                            {
+                                                                backgroundColor: sel ? theme.primary : fg('#EFEFF4', '#3A3A3C'),
+                                                                borderColor: sel ? theme.primary : fg('#C7C7CC', '#48484A'),
+                                                            },
                                                         ]}
+                                                        onPress={() => {
+                                                            const upd = sel
+                                                                ? recurrenceDays.filter((x) => x !== idx)
+                                                                : [...recurrenceDays, idx].sort((a, b) => a - b);
+                                                            setRecurrenceDays(upd);
+                                                        }}
                                                     >
-                                                        {day}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
+                                                        <Text
+                                                            style={[
+                                                                styles.dayText,
+                                                                { color: sel ? '#FFFFFF' : fg('#1C1C1E', '#F2F2F7') },
+                                                            ]}
+                                                        >
+                                                            {d}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
                                     </View>
                                 )}
 
+                                {/* END-CONDITION */}
                                 {recurrenceType !== 'none' && (
                                     <>
-                                        <Text style={styles.label}>Ends</Text>
+                                        <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Ends</Text>
                                         <TouchableOpacity
-                                            style={styles.selectionButton}
+                                            style={[
+                                                styles.selectionButton,
+                                                { backgroundColor: fg('#FFFFFF', '#2C2C2E'), borderColor: fg('#E5E5EA', '#3A3A3C') },
+                                            ]}
                                             onPress={() => setShowRecurrenceEndTypePicker(true)}
                                         >
-                                            <Text style={styles.selectionButtonText}>
+                                            <Text style={[styles.selectionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
                                                 {recurrenceEndType === 'never' && 'Never'}
                                                 {recurrenceEndType === 'date' &&
                                                     `On ${recurrenceEndDate ? recurrenceEndDate.toLocaleDateString() : 'Select Date'}`}
                                                 {recurrenceEndType === 'count' &&
                                                     `After ${recurrenceOccurrences || '#'} occurrences`}
                                             </Text>
-                                            <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                            <Text style={[styles.selectionButtonIcon, { color: fg('#8E8E93', '#8E8E93') }]}>
+                                                ⌄
+                                            </Text>
                                         </TouchableOpacity>
-                                        {recurrenceEndType === 'date' && (
-                                            <DateTimePicker
-                                                value={recurrenceEndDate || new Date()}
-                                                mode="date"
-                                                display="default"
-                                                minimumDate={new Date()}
-                                                onChange={(event, date) => {
-                                                    if (date) setRecurrenceEndDate(date);
-                                                }}
-                                            />
-                                        )}
-                                        {recurrenceEndType === 'count' && (
-                                            <TextInput
-                                                style={[styles.input, { marginTop: 5 }]}
-                                                keyboardType="numeric"
-                                                placeholder="Number of times"
-                                                value={recurrenceOccurrences ? String(recurrenceOccurrences) : ""}
-                                                onChangeText={(t) =>
-                                                    setRecurrenceOccurrences(t === "" ? null : Math.max(1, parseInt(t) || 1))
-                                                }
-                                                placeholderTextColor="#8e8e93"
-                                            />
-                                        )}
                                     </>
                                 )}
                             </View>
 
-                            <Text style={styles.label}>Category</Text>
+                            {/* ▼ End-Condition Picker */}
+                            {renderRecurrenceEndTypePicker()}
+
+                            {/* ───────── CATEGORY ───────── */}
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Category</Text>
                             <TouchableOpacity
-                                style={styles.selectionButton}
+                                style={[
+                                    styles.selectionButton,
+                                    { backgroundColor: fg('#FFFFFF', '#2C2C2E'), borderColor: fg('#E5E5EA', '#3A3A3C') },
+                                ]}
                                 onPress={() => setShowCategoryPicker(true)}
                             >
-                                <Text style={styles.selectionButtonText}>{editCategory}</Text>
-                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                <Text style={[styles.selectionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
+                                    {editCategory}
+                                </Text>
+                                <Text style={[styles.selectionButtonIcon, { color: fg('#8E8E93', '#8E8E93') }]}>⌄</Text>
                             </TouchableOpacity>
+
+                            {/* ▼ Category Picker */}
                             <Modal visible={showCategoryPicker} transparent animationType="slide">
-                                <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end', alignItems: 'stretch' }]}>
-                                    <View style={styles.pickerModalContent}>
+                                <View style={[styles.pickerModalOverlay, { justifyContent: 'flex-end' }]}>
+                                    <View
+                                        style={[
+                                            styles.pickerModalContent,
+                                            { backgroundColor: fg('#FFFFFF', '#1C1C1E') },
+                                        ]}
+                                    >
                                         <View style={styles.pickerHeader}>
-                                            <Text style={styles.pickerTitle}>Select Category</Text>
+                                            <Text style={[styles.pickerTitle, { color: fg('#1C1C1E', '#F2F2F7') }]}>
+                                                Select Category
+                                            </Text>
                                             <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                                                <Text style={styles.pickerDoneButton}>Done</Text>
+                                                <Text style={[styles.pickerDoneButton, { color: theme.primary }]}>Done</Text>
                                             </TouchableOpacity>
                                         </View>
                                         <Picker
                                             selectedValue={editCategory}
-                                            onValueChange={(itemValue) => setEditCategory(itemValue)}
+                                            onValueChange={setEditCategory}
+                                            style={{ color: fg('#1C1C1E', '#F2F2F7') }}
                                         >
-                                            {categories.map((cat) => (
-                                                <Picker.Item key={cat} label={cat} value={cat} />
+                                            {categories.map((c) => (
+                                                <Picker.Item key={c} label={c} value={c} />
                                             ))}
                                         </Picker>
                                     </View>
                                 </View>
                             </Modal>
 
-                            <Text style={styles.label}>Date</Text>
-                            <Calendar
-                                renderHeader={(date) => {
-                                    const formatted = new Date(date).toLocaleDateString('en-US', {
-                                        month: 'long',
-                                        year: 'numeric',
-                                    });
-                                    return (
-                                        <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 10 }}>
-                                            {formatted}
-                                        </Text>
-                                    );
-                                }}
-                                current={editDate}
-                                onDayPress={onEditDateSelect}
-                                markedDates={{
-                                    [editDate]: {
-                                        selected: true,
-                                        selectedColor: '#007aff',
-                                        selectedTextColor: 'white',
-                                    },
-                                }}
-                                theme={styles.calendarTheme}
-                            />
+                            {/* ───────── DATE ───────── */}
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Date</Text>
 
-                            <Text style={styles.label}>Scheduled Time</Text>
+                            {(() => {
+                                const todayKey = new Date().toISOString().split('T')[0];
+                                const marked   = {};
+
+                                if (editDate === todayKey) {
+                                    /* today *is* the selected date → one red highlight */
+                                    marked[todayKey] = {
+                                        selected: true,
+                                        selectedColor: '#ff453a',        // red circle
+                                        selectedTextColor: '#FFFFFF',    // white number
+                                    };
+                                } else {
+                                    /* red circle for today … */
+                                    marked[todayKey] = {
+                                        customStyles: {
+                                            container: { backgroundColor: '#ff453a', borderRadius: 18 },
+                                            text:       { color: '#FFFFFF', fontWeight: '600' },  // white number
+                                        },
+                                    };
+                                    /* …blue circle for the user-selected date */
+                                    marked[editDate] = {
+                                        selected: true,
+                                        selectedColor: theme.primary,
+                                        selectedTextColor: '#FFFFFF',
+                                    };
+                                }
+
+                                return (
+                                    <Calendar
+                                        renderHeader={(date) => (
+                                            <Text
+                                                style={{
+                                                    fontSize: 18,
+                                                    fontWeight: '600',
+                                                    textAlign: 'center',
+                                                    paddingVertical: 10,
+                                                    color: theme.text,
+                                                }}>
+                                                {new Date(date).toLocaleDateString('en-US', {
+                                                    month: 'long',
+                                                    year:  'numeric',
+                                                })}
+                                            </Text>
+                                        )}
+                                        /* IMPORTANT: enable per-day custom styles */
+                                        markingType="custom"
+                                        current={editDate}
+                                        onDayPress={onEditDateSelect}
+                                        markedDates={marked}
+                                        theme={{
+                                            calendarBackground:        fg('#FFFFFF', '#1C1C1E'),
+                                            textSectionTitleColor:     fg('#3C3C3E', '#D1D1D6'),
+                                            dayTextColor:              fg('#1C1C1E', '#F2F2F7'),
+                                            monthTextColor:            fg('#1C1C1E', '#F2F2F7'),
+                                            arrowColor:                theme.primary,
+                                            todayTextColor:            '#FFFFFF',   // fallback (won’t be used with custom style)
+                                        }}
+                                    />
+                                );
+                            })()}
+
+                            {/* ───────── TIME ───────── */}
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Scheduled Time</Text>
                             <TouchableOpacity
-                                style={styles.selectionButton}
+                                style={[
+                                    styles.selectionButton,
+                                    { backgroundColor: fg('#FFFFFF', '#2C2C2E'), borderColor: fg('#E5E5EA', '#3A3A3C') },
+                                ]}
                                 onPress={() => setShowEditTimePicker(true)}
                             >
-                                <Text style={styles.selectionButtonText}>
+                                <Text style={[styles.selectionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
                                     {editTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                                 </Text>
-                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                <Text style={[styles.selectionButtonIcon, { color: fg('#8E8E93', '#8E8E93') }]}>⌄</Text>
                             </TouchableOpacity>
+
                             {showEditTimePicker && (
                                 <DateTimePicker
                                     value={editTime}
@@ -1721,45 +1844,61 @@ export default function CalendarScreen() {
                                     onChange={onEditTimeChange}
                                 />
                             )}
+                            {/* iOS Done button */}
                             {Platform.OS === 'ios' && showEditTimePicker && (
                                 <TouchableOpacity
-                                    style={[styles.actionButton, { backgroundColor: '#ccc', marginVertical: 10 }]}
+                                    style={[
+                                        styles.actionButton,
+                                        { backgroundColor: fg('#EFEFF4', '#3A3A3C'), marginVertical: 10 },
+                                    ]}
                                     onPress={() => setShowEditTimePicker(false)}
                                 >
-                                    <Text style={[styles.actionButtonText, { color: '#000' }]}>Confirm Time</Text>
+                                    <Text style={[styles.actionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
+                                        Confirm Time
+                                    </Text>
                                 </TouchableOpacity>
                             )}
 
-                            <Text style={styles.label}>Duration</Text>
+                            {/* ───────── DURATION ───────── */}
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Duration</Text>
                             <TouchableOpacity
-                                style={styles.selectionButton}
+                                style={[
+                                    styles.selectionButton,
+                                    { backgroundColor: fg('#FFFFFF', '#2C2C2E'), borderColor: fg('#E5E5EA', '#3A3A3C') },
+                                ]}
                                 onPress={() => {
-                                    const [hrs, mins] = editDuration.split(':').map(Number);
-                                    setTempDurationHours(hrs.toString());
-                                    setTempDurationMinutes(mins.toString());
+                                    const [h, m] = editDuration.split(':').map(Number);
+                                    setTempDurationHours(String(h));
+                                    setTempDurationMinutes(String(m).padStart(2, '0'));
                                     setShowDurationPicker(true);
                                 }}
                             >
-                                <Text style={styles.selectionButtonText}>{formatDuration(editDuration)}</Text>
-                                <Text style={styles.selectionButtonIcon}>⌄</Text>
+                                <Text style={[styles.selectionButtonText, { color: fg('#1C1C1E', '#F2F2F7') }]}>
+                                    {formatDuration(editDuration)}
+                                </Text>
+                                <Text style={[styles.selectionButtonIcon, { color: fg('#8E8E93', '#8E8E93') }]}>⌄</Text>
                             </TouchableOpacity>
-                            {renderDurationPicker()}
-                            {renderRecurrenceEndTypePicker()}
 
-                            <Text style={styles.label}>Task Reminder</Text>
+                            {renderDurationPicker()}
+
+                            {/* ───────── REMINDER ───────── */}
+                            <Text style={[styles.label, { color: fg('#3C3C3E', '#D1D1D6') }]}>Task Reminder</Text>
                             <View style={styles.reminderContainer}>
-                                <Text>Enable Reminder</Text>
+                                <Text style={{ color: fg('#1C1C1E', '#F2F2F7') }}>Enable Reminder</Text>
                                 <Switch
                                     value={editReminderEnabled}
                                     onValueChange={setEditReminderEnabled}
+                                    trackColor={{ false: '#767577', true: theme.primary }}
+                                    thumbColor="#FFFFFF"
                                 />
                             </View>
                             {editReminderEnabled && (
                                 <View style={styles.reminderOffsetContainer}>
-                                    <Text>Remind Before:</Text>
+                                    <Text style={{ color: fg('#1C1C1E', '#F2F2F7') }}>Remind Before:</Text>
                                     <Picker
-                                        selectedValue={editReminderOffset.toString()}
-                                        onValueChange={value => setEditReminderOffset(parseInt(value))}
+                                        selectedValue={String(editReminderOffset)}
+                                        onValueChange={(v) => setEditReminderOffset(parseInt(v, 10))}
+                                        style={{ color: fg('#1C1C1E', '#F2F2F7') }}
                                     >
                                         <Picker.Item label="15 minutes" value="15" />
                                         <Picker.Item label="30 minutes" value="30" />
@@ -1769,18 +1908,28 @@ export default function CalendarScreen() {
                                 </View>
                             )}
 
+                            {/* ───────── ACTIONS ───────── */}
                             <View style={styles.formActions}>
                                 <TouchableOpacity
-                                    style={[styles.actionButton, styles.saveButton]}
+                                    style={[
+                                        styles.actionButton,
+                                        styles.saveButton,
+                                        { backgroundColor: theme.primary },
+                                    ]}
                                     onPress={saveEditedTask}
                                 >
-                                    <Text style={styles.actionButtonText}>Save Changes</Text>
+                                    <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>Save Changes</Text>
                                 </TouchableOpacity>
+
                                 <TouchableOpacity
-                                    style={[styles.actionButton, styles.deleteButton]}
+                                    style={[
+                                        styles.actionButton,
+                                        styles.deleteButton,
+                                        { backgroundColor: fg('#FF3B30', '#FF453A') },
+                                    ]}
                                     onPress={handleDeleteTask}
                                 >
-                                    <Text style={styles.actionButtonText}>Delete</Text>
+                                    <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>Delete</Text>
                                 </TouchableOpacity>
                             </View>
                         </ScrollView>
@@ -1815,60 +1964,32 @@ export default function CalendarScreen() {
             ) : null}
 
 
-            <View style={styles.tabBar}>
+            <View style={[styles.tabBar, { backgroundColor: barBg, borderTopColor: barBorder }, shadow]}>
                 <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={styles.tabButton}
-                        onPress={() => setActiveView('tasks')}
-                    >
+                    <TouchableOpacity style={styles.tabButton} onPress={() => setActiveView('tasks')}>
                         <Animated.View style={[styles.tabIconContainer, activeView === 'tasks' && styles.activeTab]}>
-                            <Ionicons
-                                name="add"
-                                size={24}
-                                color={activeView === 'tasks' ? '#007AFF' : '#8E8E93'}
-                            />
+                            <Ionicons name="add" size={24} color={activeView === 'tasks' ? accent : inactive} />
                         </Animated.View>
-                        {activeView === 'tasks' && <Animated.View style={styles.activeIndicator}/>}
+                        {activeView === 'tasks' && <Animated.View style={styles.activeIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabButton}
-                        onPress={() => setActiveView('list')}
-                    >
+                    <TouchableOpacity style={styles.tabButton} onPress={() => setActiveView('list')}>
                         <Animated.View style={[styles.tabIconContainer, activeView === 'list' && styles.activeTab]}>
-                            <Ionicons
-                                name="list-outline"
-                                size={24}
-                                color={activeView === 'list' ? '#007AFF' : '#8E8E93'}
-                            />
+                            <Ionicons name="list-outline" size={24} color={activeView === 'list' ? accent : inactive} />
                         </Animated.View>
-                        {activeView === 'list' && <Animated.View style={styles.activeIndicator}/>}
+                        {activeView === 'list' && <Animated.View style={styles.activeIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabButton}
-                        onPress={() => setActiveView('calendar')}
-                    >
+                    <TouchableOpacity style={styles.tabButton} onPress={() => setActiveView('calendar')}>
                         <Animated.View style={[styles.tabIconContainer, activeView === 'calendar' && styles.activeTab]}>
-                            <Ionicons
-                                name="calendar-outline"
-                                size={24}
-                                color={activeView === 'calendar' ? '#007AFF' : '#8E8E93'}
-                            />
+                            <Ionicons name="calendar-outline" size={24} color={activeView === 'calendar' ? accent : inactive} />
                         </Animated.View>
-                        {activeView === 'calendar' && <Animated.View style={styles.activeIndicator}/>}
+                        {activeView === 'calendar' && <Animated.View style={styles.activeIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabButton}
-                        onPress={() => setShowSettingsMenu(!showSettingsMenu)}
-                    >
+                    <TouchableOpacity style={styles.tabButton} onPress={() => setShowSettingsMenu(!showSettingsMenu)}>
                         <Animated.View style={[styles.tabIconContainer, showSettingsMenu && styles.activeTab]}>
-                            <Ionicons
-                                name="settings-outline"
-                                size={24}
-                                color={showSettingsMenu ? '#007AFF' : '#8E8E93'}
-                            />
+                            <Ionicons name="settings-outline" size={24} color={showSettingsMenu ? accent : inactive} />
                         </Animated.View>
                     </TouchableOpacity>
                 </View>
