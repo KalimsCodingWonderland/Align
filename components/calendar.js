@@ -5,6 +5,7 @@ import { Calendar } from 'react-native-calendars';
 import { styles } from '../app/styles';
 import { generateRecurringTasks } from "../constants/recurrence";
 
+
 const CalendarViewTab = ({
                              getMarkedDates,
                              setSelectedDate,
@@ -25,6 +26,17 @@ const CalendarViewTab = ({
                     arrowColor: '#007aff',
                     dotColor: '#9f00ff',
                     todayDotColor: '#00ceff',
+                }}
+                renderHeader={(date) => {
+                    const formatted = new Date(date).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                    });
+                    return (
+                        <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 10 }}>
+                            {formatted}
+                        </Text>
+                    );
                 }}
                 dayComponent={({ date, state, marking, onPress }) => {
                     const dateStr = date.dateString;
@@ -73,7 +85,7 @@ const CalendarViewTab = ({
                     );
                 }}
             />
-            {selectedDate && (
+            {(
                 <FlatList
                     contentContainerStyle={{ marginTop: 20, paddingBottom: 60 }}
                     data={tasks

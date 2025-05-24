@@ -1679,6 +1679,17 @@ export default function CalendarScreen() {
 
                             <Text style={styles.label}>Date</Text>
                             <Calendar
+                                renderHeader={(date) => {
+                                    const formatted = new Date(date).toLocaleDateString('en-US', {
+                                        month: 'long',
+                                        year: 'numeric',
+                                    });
+                                    return (
+                                        <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 10 }}>
+                                            {formatted}
+                                        </Text>
+                                    );
+                                }}
                                 current={editDate}
                                 onDayPress={onEditDateSelect}
                                 markedDates={{
