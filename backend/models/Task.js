@@ -45,45 +45,42 @@ const TaskSchema = new mongoose.Schema({
     notificationId: { type: String }, // Store notification ID
 });
 
-const MAX_DELETED_PER_CATEGORY = 5;   // ⇦ set whatever limit you want
+const MAX_DELETED_PER_CATEGORY = 5;          // ← tune to taste
 
-/**
- * Whenever a task is saved with deleted === true, make sure that the number
- * of *deleted* tasks for (user, category) does not exceed the cap.
- * Surplus oldest docs are hard-deleted (based on _id creation order).
- */
-TaskSchema.post('save', async function (doc) {
-    if (!doc.deleted) return;                 // only prune when a task is soft-deleted
+// helper reused by every hook
+async function pruneDeleted(userId, category, Task) {
+    const total = await Task.countDocuments({ user: userId, category, deleted: true });
 
-    try {
-        const Task = this.constructor;
+    if (total > MAX_DELETED_PER_CATEGORY) {
+        const surplus = total - MAX_DELETED_PER_CATEGORY;
 
-        // count how many deleted tasks exist for *this user & category*
-        const total = await Task.countDocuments({
-            user: doc.user,
-            category: doc.category,
-            deleted: true,
-        });
+        const victims = await Task.find({ user: userId, category, deleted: true })
+            .sort({ _id: 1 })            // oldest first
+            .limit(surplus)
+            .select('_id');
 
-        if (total > MAX_DELETED_PER_CATEGORY) {
-            const surplus = total - MAX_DELETED_PER_CATEGORY;
-
-            // pick the oldest surplus docs and remove them
-            const victims = await Task.find({
-                user: doc.user,
-                category: doc.category,
-                deleted: true,
-            })
-                .sort({ _id: 1 })           // older _id ⇒ created earlier
-                .limit(surplus)
-                .select('_id');
-
-            await Task.deleteMany({ _id: { $in: victims.map(v => v._id) } });
-        }
-    } catch (err) {
-        console.error('Pruning deleted tasks (per-category) failed:', err);
-        // even if pruning fails the original save still succeeds
+        await Task.deleteMany({ _id: { $in: victims.map(v => v._id) } });
     }
+}
+
+/* ① fires when a document is saved via `.save()` */
+TaskSchema.post('save', function (doc) {
+    if (doc.deleted) pruneDeleted(doc.user, doc.category, this.constructor);
+});
+
+/* ② fires when a document is updated via any of these query helpers */
+['findOneAndUpdate', 'updateOne', 'updateMany'].forEach((method) => {
+    TaskSchema.post(method, async function (res) {
+        // does the update turn `deleted` on?
+        const upd = this.getUpdate() || {};
+        const sets = { ...upd, ...(upd.$set || {}) };
+
+        if (sets.deleted === true) {
+            // `res` is only defined for findOneAndUpdate; if absent, re-fetch one victim doc
+            const doc = res || await this.model.findOne(this.getQuery()).select('user category');
+            if (doc) pruneDeleted(doc.user, doc.category, this.model);
+        }
+    });
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
