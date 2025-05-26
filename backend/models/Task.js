@@ -45,4 +45,42 @@ const TaskSchema = new mongoose.Schema({
     notificationId: { type: String }, // Store notification ID
 });
 
+const MAX_DELETED_PER_CATEGORY = 300;          // ← tune to taste
+
+// helper reused by every hook
+async function pruneDeleted(userId, category, Task) {
+    const total = await Task.countDocuments({ user: userId, category, deleted: true });
+
+    if (total > MAX_DELETED_PER_CATEGORY) {
+        const surplus = total - MAX_DELETED_PER_CATEGORY;
+
+        const victims = await Task.find({ user: userId, category, deleted: true })
+            .sort({ _id: 1 })            // oldest first
+            .limit(surplus)
+            .select('_id');
+
+        await Task.deleteMany({ _id: { $in: victims.map(v => v._id) } });
+    }
+}
+
+/* ① fires when a document is saved via `.save()` */
+TaskSchema.post('save', function (doc) {
+    if (doc.deleted) pruneDeleted(doc.user, doc.category, this.constructor);
+});
+
+/* ② fires when a document is updated via any of these query helpers */
+['findOneAndUpdate', 'updateOne', 'updateMany'].forEach((method) => {
+    TaskSchema.post(method, async function (res) {
+        // does the update turn `deleted` on?
+        const upd = this.getUpdate() || {};
+        const sets = { ...upd, ...(upd.$set || {}) };
+
+        if (sets.deleted === true) {
+            // `res` is only defined for findOneAndUpdate; if absent, re-fetch one victim doc
+            const doc = res || await this.model.findOne(this.getQuery()).select('user category');
+            if (doc) pruneDeleted(doc.user, doc.category, this.model);
+        }
+    });
+});
+
 module.exports = mongoose.model('Task', TaskSchema);
