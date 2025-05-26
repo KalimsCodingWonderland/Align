@@ -45,7 +45,7 @@ const TaskSchema = new mongoose.Schema({
     notificationId: { type: String }, // Store notification ID
 });
 
-const MAX_DELETED_PER_CATEGORY = 5;          // ← tune to taste
+const MAX_DELETED_PER_CATEGORY = 300;          // ← tune to taste
 
 // helper reused by every hook
 async function pruneDeleted(userId, category, Task) {
